@@ -4,7 +4,7 @@
 		<table>
 			<tr>
 				<td class="left"><label for="uname">{TR_USERNAME}</label></td>
-				<td class="right"><input type="text" name="uname" id="uname" value="{UNAME}"/></td>
+				<td class="right"><input type="text" name="uname" id="uname" value="{UNAME}" autocomplete="off"/></td>
 			</tr>
 			<tr>
 				<td class="left"><label for="password">{TR_PASSWORD}</label></td>

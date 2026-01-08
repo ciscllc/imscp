@@ -421,6 +421,20 @@ function _reseller_generateFeaturesForm($tpl, &$data)
         'PHP_NO' => $data['domain_php'] != 'yes' ? ' checked' : ''
     ));
 
+    // PHP version selection
+    $phpVersions = isset($cfg['PHP_SUPPORTED_VERSIONS']) ? array_map('trim', explode(',', $cfg['PHP_SUPPORTED_VERSIONS'])) : array($cfg['PHP_DEFAULT_VERSION']);
+    $selectedPhpVersion = $data['domain_php_version'] != '' ? $data['domain_php_version'] : (isset($cfg['PHP_DEFAULT_VERSION']) ? $cfg['PHP_DEFAULT_VERSION'] : $phpVersions[0]);
+    $options = '';
+    foreach ($phpVersions as $ver) {
+        $sel = ($selectedPhpVersion == $ver) ? ' selected' : '';
+        $options .= "<option value=\"" . tohtml($ver, 'htmlAttr') . "\"$sel>" . tohtml($ver) . "</option>";
+    }
+
+    $tpl->assign(array(
+        'TR_PHP_VERSION' => tr('PHP version'),
+        'PHP_VERSION_OPTIONS' => $options
+    ));
+
     $phpini = iMSCP_PHPini::getInstance();
 
     // PHP editor - begin

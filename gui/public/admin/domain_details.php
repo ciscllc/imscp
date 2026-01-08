@@ -137,6 +137,7 @@ function admin_generatePage($tpl, $domainId)
 			'VL_STATUS' => $domainStatus,
 			'VL_PHP_SUPP' => translate_limit_value($domainProperties['domain_php']),
 			'VL_PHP_EDITOR_SUPP' => translate_limit_value($domainProperties['phpini_perm_system']),
+			'VL_PHP_VERSION' => isset($domainProperties['domain_php_version']) && $domainProperties['domain_php_version'] != '' ? tohtml($domainProperties['domain_php_version']) : '-',
 			'VL_CGI_SUPP' => translate_limit_value($domainProperties['domain_cgi']),
 			'VL_DNS_SUPP' => translate_limit_value($domainProperties['domain_dns']),
 			'VL_EXT_MAIL_SUPP' => translate_limit_value($domainProperties['domain_external_mail']),

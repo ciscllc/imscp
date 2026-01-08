@@ -29,6 +29,15 @@
 require_once 'imscp-lib.php';
 require_once LIBRARY_PATH . '/Functions/LostPassword.php';
 
+// Basic security headers for lost password page
+header('X-Frame-Options: SAMEORIGIN');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer-when-downgrade');
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self';");
+if (function_exists('isSecureRequest') && isSecureRequest()) {
+	header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
+
 iMSCP_Events_Aggregator::getInstance()->dispatch(iMSCP_Events::onLostPasswordScriptStart);
 
 // Purge expired sessions

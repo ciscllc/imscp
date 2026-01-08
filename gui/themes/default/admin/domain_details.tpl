@@ -22,6 +22,10 @@
 		<td>{TR_PHP_SUPP}</td>
 		<td>{VL_PHP_SUPP}</td>
 	</tr>
+    <tr>
+        <td>{TR_PHP_VERSION}</td>
+        <td>{VL_PHP_VERSION}</td>
+    </tr>
 	<tr>
 		<td>{TR_PHP_EDITOR_SUPP}</td>
 		<td>{VL_PHP_EDITOR_SUPP}</td>

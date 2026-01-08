@@ -197,6 +197,17 @@ function updatePhpConfig($phpini, $configLevel)
     }
 
     $phpini->saveDomainIni($_SESSION['user_id'], $dmnId, $dmnType);
+    // Save selected PHP version for domain if provided and column exists
+    if (isset($_POST['domain_php_version']) && $dmnType == 'dmn') {
+        try {
+            $stmtCol = exec_query("SHOW COLUMNS FROM domain LIKE 'domain_php_version'");
+            if ($stmtCol->rowCount()) {
+                exec_query('UPDATE domain SET domain_php_version = ? WHERE domain_id = ?', array(clean_input($_POST['domain_php_version']), $dmnId));
+            }
+        } catch (Exception $e) {
+            // ignore DB errors for optional column
+        }
+    }
     $phpini->updateDomainStatuses($configLevel, $_SESSION['user_id'], $dmnId, $dmnType);
 
     send_request();
@@ -340,6 +351,47 @@ function generatePage($tpl, $phpini, $config, $configLevel)
         'TR_PHP_VERSION_INFO' => tohtml(tr('PHP Versions')),
         'TR_DEFAULT_PHP' => tohtml(tr('Default PHP')),
         'TR_SUPPORTED_PHP' => tohtml(tr('Supported PHP'))
+    ));
+
+    // Prepare PHP version options for select and try to load current domain selection
+    $phpVersions = isset($config['PHP_SUPPORTED_VERSIONS']) ? array_map('trim', explode(',', $config['PHP_SUPPORTED_VERSIONS'])) : array();
+    $selectedPhpVersion = '';
+    if (isset($_GET['domain_id']) && isset($_GET['domain_type'])) {
+        $dmnId = intval($_GET['domain_id']);
+        $dmnType = clean_input($_GET['domain_type']);
+        try {
+            $stmtCol = exec_query("SHOW COLUMNS FROM domain LIKE 'domain_php_version'");
+            if ($stmtCol->rowCount()) {
+                if ($dmnType == 'dmn') {
+                    $stmt = exec_query('SELECT domain_php_version FROM domain WHERE domain_id = ?', $dmnId);
+                    if ($stmt->rowCount()) {
+                        $selectedPhpVersion = $stmt->fields['domain_php_version'];
+                    }
+                } elseif ($dmnType == 'als') {
+                    $stmt = exec_query('SELECT d.domain_php_version FROM domain d JOIN domain_aliasses a USING(domain_id) WHERE a.alias_id = ?', $dmnId);
+                    if ($stmt->rowCount()) {
+                        $selectedPhpVersion = $stmt->fields['domain_php_version'];
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            // ignore DB errors for optional column
+        }
+    }
+
+    if ($selectedPhpVersion == '') {
+        $selectedPhpVersion = isset($config['PHP_DEFAULT_VERSION']) ? $config['PHP_DEFAULT_VERSION'] : (count($phpVersions) ? $phpVersions[0] : '');
+    }
+
+    $options = '';
+    foreach ($phpVersions as $ver) {
+        $sel = ($selectedPhpVersion == $ver) ? ' selected' : '';
+        $options .= "<option value=\"" . tohtml($ver, 'htmlAttr') . "\"$sel>" . tohtml($ver) . "</option>";
+    }
+
+    $tpl->assign(array(
+        'TR_PHP_VERSION' => tohtml(tr('PHP version')),
+        'PHP_VERSION_OPTIONS' => $options
     ));
 }
 

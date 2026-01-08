@@ -1,58 +1,77 @@
-body {
-    font-family: Geneva, Arial, Helvetica, sans-serif;
-    margin: 0;
+:root{
+    --bg-color:#2c2c2c;
+    --panel-bg:linear-gradient(#ffffff00,#00000010);
+    --accent: #ff0000;
+    --text:#ffffff;
 }
 
-h1 {
-    color: rgb(255,0,0);
-    margin: 0;
-    padding: 0;
+html,body{
+    height:100%;
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f5f5f5;
+    color:var(--text);
 }
 
-p {
-    font-size: 16px;
-    letter-spacing: 7px;
-    color: #ffffff;
+body{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    box-sizing:border-box;
 }
 
-a {
-    font-weight: bold;
-    color: rgb(102,102,102);
-    text-decoration: none;
-    font-size: 14px;
-    letter-spacing: normal;
+#outer{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
-#outer {
-    height: 1px;
-    left: 0;
-    overflow: visible;
-    position: absolute;
-    text-align: center;
-    top: 40%;
-    width: 100%;
-}
-
-#inner {
-    background-image: url('/errors/inc/imscp_logo90.png'), url(/errors/inc/gradient_box.png), url(/errors/inc/stripe_box.png);
+#inner{
+    background-image: url('/errors/inc/imscp_logo90.png'), url('/errors/inc/gradient_box.png'), url('/errors/inc/stripe_box.png');
     background-position: left top, bottom, top;
     background-repeat: no-repeat, repeat-x, repeat;
-    background-size: auto, 100% 100%, auto;
-    border: 1px solid silver;
-    border-radius: 20px;
-    box-shadow: 0px 0px 5px 0px rgba(50, 50, 50, 0.75);
-    height: auto;
-    left: 50%;
-    margin-left: -227px;
-    padding-bottom: 12px;
-    padding-top: 70px;
-    position: absolute;
-    text-align: center;
-    top: -94px;
-    width: 453px;
+    background-size: auto, cover, auto;
+    background-color: var(--bg-color);
+    border-radius:12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    max-width:900px;
+    width:min(95%,600px);
+    padding:40px 24px;
+    box-sizing:border-box;
+    text-align:center;
+    color:var(--text);
 }
 
-#backlink {
-    text-align: right;
-    padding: 0 15px;
+h1{
+    color:var(--accent);
+    margin:0 0 12px 0;
+    font-size:2rem;
+}
+
+p{
+    margin:0 0 18px 0;
+    font-size:1rem;
+    letter-spacing:1px;
+    color: #ffffffcc;
+}
+
+a{
+    color:#cccccc;
+    text-decoration:none;
+}
+
+#backlink{ text-align:right; margin-top:12px }
+
+.err-footer{
+    margin-top:18px;
+    font-size:0.9rem;
+    color:#cfcfcf;
+}
+
+@media (max-width:480px){
+    #inner{ padding:24px 12px }
+    h1{ font-size:1.4rem }
+    p{ font-size:0.95rem }
 }

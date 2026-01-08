@@ -20,6 +20,27 @@
 
 // Include core library
 require 'imscp-lib.php';
+$
+// Basic security headers
+function send_security_headers()
+{
+	// Clickjacking protection
+	header('X-Frame-Options: SAMEORIGIN');
+	// Prevent MIME-type sniffing
+	header('X-Content-Type-Options: nosniff');
+	// Referrer policy
+	header('Referrer-Policy: no-referrer-when-downgrade');
+	// Content Security Policy (basic)
+	header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'self';");
+	// Feature-Policy / Permissions-Policy minimal
+	header('Permissions-Policy: geolocation=(), microphone=()');
+	// HSTS when HTTPS
+	if (function_exists('isSecureRequest') && isSecureRequest()) {
+		header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+	}
+}
+
+send_security_headers();
 
 $eventManager = iMSCP_Events_Aggregator::getInstance();
 $eventManager->dispatch(iMSCP_Events::onLoginScriptStart);
@@ -37,16 +58,43 @@ if(isset($_REQUEST['action'])) {
 				write_log(sprintf("%s logged out", decode_idna($adminName)), E_USER_NOTICE);
 			}
 			break;
-		case 'login':
-			$authResult = $auth->authenticate();
+			case 'login':
+				// Simple session-based rate limiting to mitigate brute force
+				$maxAttempts = 5;
+				$window = 15 * 60; // 15 minutes
+				$now = time();
+				if (!isset($_SESSION['login_first_time'])) {
+					$_SESSION['login_first_time'] = $now;
+				}
+				if (!isset($_SESSION['login_attempts'])) {
+					$_SESSION['login_attempts'] = 0;
+				}
+				// Reset window
+				if ($now - $_SESSION['login_first_time'] > $window) {
+					$_SESSION['login_attempts'] = 0;
+					$_SESSION['login_first_time'] = $now;
+				}
 
-			if($authResult->isValid()) {
-				write_log(sprintf("%s logged in", $authResult->getIdentity()->admin_name), E_USER_NOTICE);
-			} elseif(($messages = $authResult->getMessages())) {
-				$messages = format_message($messages);
-				set_page_message($messages, 'error');
-				write_log(sprintf("Authentication failed. Reason: %s", $messages), E_USER_NOTICE);
-			}
+				if ($_SESSION['login_attempts'] >= $maxAttempts) {
+					set_page_message(tr('Too many login attempts. Please wait and try again.'), 'error');
+					write_log('Login attempt blocked due to rate limiting', E_USER_NOTICE);
+					break;
+				}
+
+				$authResult = $auth->authenticate();
+
+				if($authResult->isValid()) {
+					write_log(sprintf("%s logged in", $authResult->getIdentity()->admin_name), E_USER_NOTICE);
+					// Reset counters on successful login
+					$_SESSION['login_attempts'] = 0;
+					$_SESSION['login_first_time'] = 0;
+				} elseif(($messages = $authResult->getMessages())) {
+					$messages = format_message($messages);
+					set_page_message($messages, 'error');
+					write_log(sprintf("Authentication failed. Reason: %s", $messages), E_USER_NOTICE);
+					// Increment attempts
+					$_SESSION['login_attempts']++;
+				}
 	}
 }
 

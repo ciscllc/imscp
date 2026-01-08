@@ -39,6 +39,14 @@
                 <p>{TR_SUPPORTED_PHP}: {PHP_SUPPORTED_VERSIONS}</p>
             </td>
         </tr>
+        <tr>
+            <td><label for="domain_php_version">{TR_PHP_VERSION}</label></td>
+            <td>
+                <select id="domain_php_version" name="domain_php_version">
+                    {PHP_VERSION_OPTIONS}
+                </select>
+            </td>
+        </tr>
         <!-- EDP: domain_list_block -->
         <!-- BDP: allow_url_fopen_block -->
         <tr>

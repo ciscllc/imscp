@@ -29,4 +29,8 @@
 require_once 'imscp-lib.php';
 require_once LIBRARY_PATH . '/Functions/LostPassword.php';
 
+// Security headers for image output
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer');
+
 createImage('image');

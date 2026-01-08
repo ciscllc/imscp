@@ -147,6 +147,14 @@
                 </div>
             </td>
         </tr>
+        <tr>
+            <td><label for="domain_php_version">{TR_PHP_VERSION}</label></td>
+            <td>
+                <select id="domain_php_version" name="domain_php_version">
+                    {PHP_VERSION_OPTIONS}
+                </select>
+            </td>
+        </tr>
         <!-- BDP: php_editor_block -->
         <tr id="php_editor_block">
             <td><label for="phpiniSystem">{TR_PHP_EDITOR}</label></td>

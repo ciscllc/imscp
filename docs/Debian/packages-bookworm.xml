@@ -1,9 +1,9 @@
 <packages>
     <frontend default="nginx">
-        <nginx repository_conflict="http://nginx.org/packages/ubuntu">
+        <nginx repository_conflict="http://nginx.org/packages/debian">
             <package>nginx-light</package>
             <package>spawn-fcgi</package>
-            <package>php7.4-cgi</package>
+            <package>php8.1-cgi</package>
             <package_conflict>nginx</package_conflict>
         </nginx>
     </frontend>
@@ -12,32 +12,20 @@
             <package>apache2</package>
             <package>apache2-suexec-custom</package>
             <package>libapache2-mod-fcgid</package>
-            <package>php7.4-cgi</package>
+            <package>php8.1-cgi</package>
         </apache_fcgid>
         <apache_itk>
             <package>apache2</package>
-            <package>libapache2-mod-php7.4</package>
+            <package>libapache2-mod-php8.1</package>
             <package_delayed>libapache2-mpm-itk</package_delayed>
         </apache_itk>
         <apache_php_fpm>
             <package>apache2</package>
             <package>apache2-suexec-custom</package>
-            <package>php7.4-fpm</package>
+            <package>php8.1-fpm</package>
         </apache_php_fpm>
     </httpd>
     <po default="dovecot">
-        <courier>
-            <package>courier-authlib-mysql</package>
-            <package>courier-imap</package>
-            <package>courier-imap-ssl</package>
-            <package>courier-pop</package>
-            <package>courier-pop-ssl</package>
-            <package>libgamin0</package>
-            <package>libsasl2-modules</package>
-            <package>libsasl2-modules-sql</package>
-            <package>maildrop</package>
-            <package_conflict>sasl2-bin</package_conflict>
-        </courier>
         <dovecot>
             <package>dovecot-core</package>
             <package>dovecot-imapd</package>
@@ -57,11 +45,6 @@
             <package>proftpd-mod-mysql</package>
             <package_conflict>vsftpd</package_conflict>
         </proftpd>
-        <vsftpd>
-            <package>devscripts</package>
-            <package>libpam-mysql</package>
-            <package>vsftpd</package>
-        </vsftpd>
     </ftpd>
     <named default="bind">
         <bind>
@@ -73,7 +56,7 @@
     <sql default="mariadb_10.6">
         <mariadb_10.6
                 pinning_package="libmariadb3 mariadb-client-10.6 mariadb-common mariadb-server-10.6"
-                pinning_pin="release o=Ubuntu,n=focal"
+                pinning_pin="release o=Debian,n=bookworm"
                 pinning_pin_priority="1001"
                 allow_switch="remote_server"
                 >
@@ -84,7 +67,7 @@
         </mariadb_10.6>
         <remote_server
                 pinning_package="libmariadb3 mariadb-client-10.6 mariadb-common"
-                pinning_pin="release o=Ubuntu,n=focal"
+                pinning_pin="release o=Debian,n=bookworm"
                 pinning_pin_priority="1001"
                 >
             <package>libmariadb3</package>
@@ -93,16 +76,16 @@
         </remote_server>
     </sql>
     <php>
-        <package>php7.4</package>
-        <package>php7.4-cli</package>
-        <package>php7.4-curl</package>
+        <package>php8.1</package>
+        <package>php8.1-cli</package>
+        <package>php8.1-curl</package>
         <package>php-pear</package>
-        <package>php7.4-gd</package>
+        <package>php8.1-gd</package>
         <package>php-gettext</package>
         <package>php-imap</package>
-        <package>php7.4-intl</package>
-        <package>php7.4-mbstring</package>
-        <package>php7.4-mysql</package>
+        <package>php8.1-intl</package>
+        <package>php8.1-mbstring</package>
+        <package>php8.1-mysql</package>
         <package_conflict>php-apc</package_conflict>
     </php>
     <perl>
@@ -116,6 +99,7 @@
         <package>libdatetime-perl</package>
         <package>libdbd-mysql-perl</package>
         <package>libdbi-perl</package>
+        <package>libdigest-md5-perl</package>
         <package>libemail-valid-perl</package>
         <package>libfile-copy-recursive-perl</package>
         <package>libfile-homedir-perl</package>
@@ -145,7 +129,7 @@
         <package>iproute</package>
         <package>ispell</package>
         <package>libc6-dev</package>
-        <package>locales</package>
+        <package>locales-all</package>
         <package>lzma</package>
         <package>make</package>
         <package>openssl</package>

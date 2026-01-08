@@ -13,15 +13,15 @@ Table of Content
 1) Version Info
 ---------------
 
-i-MSCP Version:  1.2.17
-Distros:         Debian Wheezy, Jessie (recommended), Stretch (Experimental)
+i-MSCP Version:  1.9.00.1 beta
+Distros:         Debian Bullseye (11) (recommended)
 
 2) Requirements
 ---------------
 
  - 1 GHz or faster 32-bit (x86) or 64-bit (x64) processor
- - 512 MO memory (minimum) - For heavily loaded servers or high flow is recommended at least 8 GB
- - 1 GB of available hard disk space (only for i-MSCP and related services)
+ - 2 GB memory (minimum) - For heavily loaded servers or high flow is recommended at least 8 GB
+ - 20 GB of available hard disk space (only for i-MSCP and related services)
  - Internet access (at least 100 Mbits/s recommended)
  - A file system supporting extended attributes such as ext2, ext3, ext4 and reiserfs*.
 
@@ -43,12 +43,12 @@ All packages are listed in ./docs/Debian/packages-<codename>.xml
 3. Download and untar or unzip the distribution files to a secure directory
 
 	# cd /usr/local/src
-	# wget https://github.com/i-MSCP/imscp/archive/1.2.17.tar.gz
-	# tar xzf imscp-1.2.17.tar.gz
+	# wget https://github.com/i-MSCP/imscp/archive/1.9.00.1-beta.tar.gz
+	# tar xzf imscp-1.9.00.1-beta.tar.gz
 
 4. Change to the newly created directory
 
-	# cd imscp-1.2.17
+	# cd imscp-1.9.00.1-beta
 
 5. Run the imscp-autoinstall script
 
@@ -70,12 +70,12 @@ All packages are listed in ./docs/Debian/packages-<codename>.xml
 3. Download and untar the distribution files to a secure directory
 
 	# cd /usr/local/src
-	# wget https://github.com/i-MSCP/imscp/archive/1.2.17.tar.gz
-	# tar xzf imscp-1.2.17.tar.gz
+	# wget https://github.com/i-MSCP/imscp/archive/1.9.00.1-beta.tar.gz
+	# tar xzf imscp-1.9.00.1-beta.tar.gz
 
 4. Change to the newly created directory
 
-	# cd imscp-1.2.17
+	# cd imscp-1.9.00.1-beta
 
 5. Update by running the imscp-autoinstall script
 

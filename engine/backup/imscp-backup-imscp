@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # i-MSCP - internet Multi Server Control Panel
-# Copyright (C) 2010-2015 by internet Multi Server Control Panel
+# Copyright (C) 2010-2026 by internet Multi Server Control Panel
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -44,6 +44,8 @@ sub run
 {
 	return 0 unless $main::imscpConfig{'BACKUP_IMSCP'} eq 'yes';
 
+	debug('imscp-backup-imscp: run() start');
+
 	my $algo = lc($main::imscpConfig{'BACKUP_COMPRESS_ALGORITHM'});
 
 	unless(exists $command->{$algo} || $algo eq 'no') {
@@ -60,10 +62,12 @@ sub run
 	# Backup i-MSCP database
 	$rs = _backupDatabase();
 	return $rs if $rs;
+	debug('imscp-backup-imscp: database backup completed successfully');
 
 	# Backup configuration files
 	$rs |= _backupConfig();
 	return $rs if $rs;
+	debug('imscp-backup-imscp: config backup completed successfully');
 
 	# Remove any backup older than 7 days
 	$rs = execute(
@@ -81,6 +85,7 @@ sub run
 		iMSCP::Mail->new()->errmsg("@errorMessages");
 	}
 
+	debug('imscp-backup-imscp: run() end retval=0');
 	0;
 }
 
@@ -96,6 +101,11 @@ sub _backupDatabase
 	my $rs = $db->dumpdb($main::imscpConfig{'DATABASE_NAME'}, $sqlFName);
 	error(sprintf('Could not dump the %s database', $main::imscpConfig{'DATABASE_NAME'})) if $rs;
 	return $rs if $rs;
+
+	if (!$rs) {
+		my $size = -s $sqlFName || 0;
+		debug(sprintf('imscp-backup-imscp: database dump %s created (size=%d bytes)', $sqlFName, $size));
+	}
 
 	my $algo = lc($main::imscpConfig{'BACKUP_COMPRESS_ALGORITHM'});
 	my $level = $main::imscpConfig{'BACKUP_COMPRESS_LEVEL'};
@@ -140,6 +150,11 @@ sub _backupConfig
 	error($stderr) if $stderr && $rs;
 	error('Could not create i-MSCP configuration backup') if $rs && !$stderr;
 	return $rs if $rs;
+
+	if (!$rs) {
+		my $size = -s $archivePath || 0;
+		debug(sprintf('imscp-backup-imscp: config archive %s created (size=%d bytes)', $archivePath, $size));
+	}
 
 	0;
 }

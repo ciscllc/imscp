@@ -26,6 +26,7 @@ use iMSCP::Bootstrapper;
 use iMSCP::Execute;
 use iMSCP::Dir;
 use iMSCP::Ext2Attributes qw/isImmutable setImmutable clearImmutable/;
+use iMSCP::File;
 use iMSCP::Getopt;
 use iMSCP::Mail;
 use Servers::mta;
@@ -35,6 +36,8 @@ use POSIX qw/strftime/;
 sub run
 {
 	return 0 unless $main::imscpConfig{'BACKUP_DOMAINS'} eq 'yes';
+
+	debug('imscp-backup-all: run() start');
 
 	my $command = {
 		bzip2 => { extension => 'bz2', command => 'bzip2' },
@@ -63,7 +66,7 @@ sub run
 		'domain_id',
 		"
 			SELECT domain_id, domain_name, domain_admin_id, allowbackup, admin_sys_name, admin_sys_gname
-			FROM domain NNNER JOIN admin ON (admin_id = domain_admin_id)
+			FROM domain INNER JOIN admin ON (admin_id = domain_admin_id)
 			WHERE domain_status = 'ok' AND allowbackup <> ''
 		"
 	);
@@ -73,6 +76,8 @@ sub run
 		$ret = 1;
 	} else {
 		for my $mainDomainId(keys %{$domainData}) {
+			my $domainStart = time();
+			debug(sprintf('imscp-backup-all: processing domain id=%s', $mainDomainId));
 			my @allowbackup = split '\|', $domainData->{$mainDomainId}->{'allowbackup'};
 
 			if (@allowbackup) {
@@ -140,12 +145,17 @@ sub run
 						$ret |= $rs;
 					}
 
-					my $file = iMSCP::File->new( filename => "$bkpDir/$mainDomainName-backup-$date.tar$ext" );
+					my $filePath = "$bkpDir/$mainDomainName-backup-$date.tar$ext";
+					my $file = iMSCP::File->new( filename => $filePath );
 					$rs = $file->mode(0644);
 					$ret ||= $rs;
 
 					$rs = $file->owner($userName, $groupName);
 					$ret ||= $rs;
+					if (!$rs) {
+						my $size = -s $filePath || 0;
+						debug(sprintf('imscp-backup-all: created web backup %s (size=%d bytes)', $filePath, $size));
+					}
 				}
 
 				# Backup all customer databases
@@ -167,13 +177,19 @@ sub run
 							next;
 						}
 
-						my $file = iMSCP::File->new( filename => "$bkpDir/$dbName.sql" );
+						my $filePath = "$bkpDir/$dbName.sql";
+						my $file = iMSCP::File->new( filename => $filePath );
 
 						$rs = $file->mode(0644);
 						$ret ||= $rs;
 
 						$rs = $file->owner($userName, $groupName);
 						$ret ||= $rs;
+
+						if (!$rs) {
+							my $size = -s $filePath || 0;
+							debug(sprintf('imscp-backup-all: created sql dump %s (size=%d bytes)', $filePath, $size));
+						}
 
 						if($algo ne 'no') {
 							my @cmd = (
@@ -239,16 +255,25 @@ sub run
 								$ret |= $rs;
 							}
 
-							my $file = iMSCP::File->new( filename => "$bkpDir/mail-$mailDir-backup-$date.tar$ext" );
+							my $filePath = "$bkpDir/mail-$mailDir-backup-$date.tar$ext";
+							my $file = iMSCP::File->new( filename => $filePath );
 							$rs = $file->mode(0644);
 							$ret ||= $rs;
 
 							$rs = $file->owner($userName, $groupName);
 							$ret ||= $rs;
+
+							if (!$rs) {
+								my $size = -s $filePath || 0;
+								debug(sprintf('imscp-backup-all: created mail backup %s (size=%d bytes)', $filePath, $size));
+							}
 						}
-					}
+					# Domain processed
+					my $domainEnd = time();
+					debug(sprintf('imscp-backup-all: finished domain id=%s elapsed=%d sec', $mainDomainId, $domainEnd - $domainStart));
 				}
-			}
+				}
+				}
 		}
 	}
 
@@ -257,6 +282,8 @@ sub run
 
 	my @errorMessages = getMessageByType('error');
 	iMSCP::Mail->new()->errmsg("@errorMessages") if @errorMessages;
+
+	debug(sprintf('imscp-backup-all: run() end retval=%d', $ret));
 
 	$ret;
 }

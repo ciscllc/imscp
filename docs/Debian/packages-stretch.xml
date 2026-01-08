@@ -53,7 +53,7 @@
         </bind>
         <external_server/>
     </named>
-    <sql default="mysql_5.6">
+    <sql default="mariadb_10.6">
         <mariadb_10.6
                 pinning_package="libmariadb3 mariadb-client-10.6 mariadb-common mariadb-server-10.6"
                 pinning_pin="release o=Debian,n=stretch"

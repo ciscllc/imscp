@@ -21,7 +21,7 @@ See the **INSTALL** file of distribution you are using inside the docs directory
 Unless otherwise stated all code is licensed under GPL 2.0 and has the following copyright:
 
 ```
-Copyright 2010-2016 by i-MSCP Team - All rights reserved.
+Copyright 2010-2026 by i-MSCP Team - All rights reserved.
 ```
 
 ### Recent changes

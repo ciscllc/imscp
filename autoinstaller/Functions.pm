@@ -257,6 +257,24 @@ EOF
 		return 1;
 	}
 
+	# Create a complete backup of the system before performing installation/update
+	# This ensures we can roll back if the update fails. We run both the full domains
+	# backup and the i-MSCP configuration backup. Abort installation if backup fails.
+	{
+		my ($stdout, $stderr);
+		debug('Running pre-update full backup: imscp-backup-all');
+		my $rs = execute('imscp-backup-all', \$stdout, \$stderr);
+		debug($stdout) if $stdout;
+		error($stderr) if $stderr && $rs;
+		return $rs if $rs;
+
+		debug('Running pre-update i-MSCP backup: imscp-backup-imscp');
+		$rs = execute('imscp-backup-imscp', \$stdout, \$stderr);
+		debug($stdout) if $stdout;
+		error($stderr) if $stderr && $rs;
+		return $rs if $rs;
+	}
+
 	my @steps = (
 		[ \&_installFiles,                'Installing files' ],
 		[ \&main::setupBoot,              'Setup bootstrapping' ],

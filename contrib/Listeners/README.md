@@ -51,10 +51,10 @@ prefix namespace.
 
 Activates the Perfect Forward Secrecy logging.
 
-### 50_dovecot_plaintext.pl
+## 50_dovecot_plaintext.pl
 
 Disables plaintext logins and enforce TLS. Also remove the cram-md5 and digest-md5 authentication mechanisms that are no
-longer supported in i-MSCP 1.3.x.
+longer supported in recent i-MSCP versions (tested with 1.9.00.1 beta).
 
 ### 60_dovecot_service_login.pl
 
@@ -69,7 +69,7 @@ Allows to setup Bind9 for local network.
 ### 10_named_slave_provisioning.pl
 
 Provides slave DNS server(s) provisioning service.
-This listener file requires i-MSCP 1.2.12 or newer.
+This listener file requires i-MSCP 1.2.12 or newer (tested with 1.9.00.1 beta).
 
 ### 10_named_tuning.pl
 

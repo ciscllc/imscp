@@ -24,6 +24,10 @@ Unless otherwise stated all code is licensed under GPL 2.0 and has the following
 Copyright 2010-2016 by i-MSCP Team - All rights reserved.
 ```
 
+### Recent changes
+
+- 1.9.00.1 beta (2025-12-31): Documentation updated to prefer MariaDB in package manifests; added Debian 11 (`bullseye`) and Ubuntu `mantic`/`jammy`/`focal` manifest templates. Some updates were partly KI generated.
+
 Please have a look at these Licenses. They are shipped with this release in the next files:
 
 * **./docs/LICENCE-MPL1.1**

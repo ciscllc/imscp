@@ -47,7 +47,8 @@ my %RELEASE_CODENAME_LOOKUP = (
 	'7' => 'wheezy',
 	'8' => 'jessie',
 	'9' => 'stretch',
-	'10' => 'buster'
+	'10' => 'buster',
+	'11' => 'bullseye'
 );
 
 my @RELEASES_ORDER = (

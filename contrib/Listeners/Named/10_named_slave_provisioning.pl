@@ -18,7 +18,7 @@
 
 #
 ## Provides slave DNS server(s) provisioning service.
-## This listener file requires i-MSCP 1.2.12 or newer.
+## This listener file requires i-MSCP 1.2.12 or newer (tested with 1.9.00.1 beta).
 ## Slave provisioning service will be available at:
 ##   - http://<panel.domain.tld>:8080/provisioning/slave_provisioning.php
 ##   - https://<panel.domain.tld>:4443/provisioning/slave_provisioning.php (if you use ssl)

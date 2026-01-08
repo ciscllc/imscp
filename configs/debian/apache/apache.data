@@ -15,7 +15,7 @@ HTTPD_LOG_DIR = /var/log/apache2
 
 # PHP variables
 
-ITK_PHP5_PATH = /etc/php5/apache2/php.ini
+ITK_PHP_INI = /etc/php/${PHP_DEFAULT_VERSION}/apache2/php.ini
 PHP_CGI_BIN = /usr/bin/php5-cgi
 PHP_FCGI_CHILDREN = 0
 PHP_FCGI_MAX_REQUESTS = 1000

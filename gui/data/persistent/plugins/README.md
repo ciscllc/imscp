@@ -42,10 +42,10 @@ return array(
 	'shell' => '/bin/bash', // (Recommended value)
 
 	// See man jk_init
-	'jail_app_sections' => array(
-		'imscp-base', // Include Pre-selected sections, users and groups
-		'mysql-client'
-	),
+ 		'jail_app_sections' => array(
+ 			'imscp-base', // Include Pre-selected sections, users and groups
+ 			'mariadb-client'
+ 		),
 
 	// See man jk_cp
 	// Any file which is not installed on your system will be ignored
@@ -107,7 +107,7 @@ return array(
 	'__REMOVE__' => array(
 		// Remove mysql-client section from the jail_app_section parameter
 		'jail_apps_sections => array(
-			'mysql-client'
+			'mariadb-client'
 		),
 
 		// Remove hostname command from the jail_additional_apps parameter

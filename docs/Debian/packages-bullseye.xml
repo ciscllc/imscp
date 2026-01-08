@@ -53,10 +53,10 @@
         </bind>
         <external_server/>
     </named>
-    <sql default="mysql_5.6">
+    <sql default="mariadb_10.6">
         <mariadb_10.6
                 pinning_package="libmariadb3 mariadb-client-10.6 mariadb-common mariadb-server-10.6"
-                pinning_pin="release o=Debian,n=stretch"
+                pinning_pin="release o=Debian,n=bullseye"
                 pinning_pin_priority="1001"
                 allow_switch="remote_server"
                 >
@@ -65,22 +65,9 @@
             <package>mariadb-common</package>
             <package>mariadb-server-10.6</package>
         </mariadb_10.6>
-        <mariadb_10.0
-                pinning_package="libmariadbclient18 mariadb-client-10.0 mariadb-common mariadb-server-10.0 mariadb-common"
-                pinning_pin="release o=Debian,n=stretch"
-                pinning_pin_priority="1001"
-                allow_switch="remote_server"
-                >
-            <package>libmariadbclient18</package>
-            <package>libmysqlclient18</package>
-            <package>mariadb-client-10.0</package>
-            <package>mariadb-common</package>
-            <package>mariadb-server-10.0</package>
-            <package>mariadb-common</package>
-        </mariadb_10.0>
         <remote_server
                 pinning_package="libmariadb3 mariadb-client-10.6 mariadb-common"
-                pinning_pin="release o=Debian,n=stretch"
+                pinning_pin="release o=Debian,n=bullseye"
                 pinning_pin_priority="1001"
                 >
             <package>libmariadb3</package>
@@ -89,19 +76,17 @@
         </remote_server>
     </sql>
     <php>
-        <package>php5</package>
-        <package>php5-cli</package>
-        <package>php5-curl</package>
+        <package>php7.4</package>
+        <package>php7.4-cli</package>
+        <package>php7.4-curl</package>
         <package>php-pear</package>
-        <package>php5-gd</package>
+        <package>php7.4-gd</package>
         <package>php-gettext</package>
-        <package>php5-imap</package>
-        <package>php5-intl</package>
-        <package>php5-json</package>
-        <package>php5-mcrypt</package>
-        <package>php5-mysqlnd</package>
+        <package>php-imap</package>
+        <package>php7.4-intl</package>
+        <package>php7.4-mbstring</package>
+        <package>php7.4-mysql</package>
         <package_conflict>php-apc</package_conflict>
-        <package_conflict>php5-suhosin</package_conflict>
     </php>
     <perl>
         <package>perl</package>

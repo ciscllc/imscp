@@ -336,7 +336,10 @@ function generatePage($tpl, $phpini, $config, $configLevel)
     $tpl->assign(array(
         'TR_PHP_SETTINGS' => tohtml(tr('PHP Settings')),
         'TR_YES' => tohtml(tr('Yes')),
-        'TR_NO' => tohtml(tr('No'))
+        'TR_NO' => tohtml(tr('No')),
+        'TR_PHP_VERSION_INFO' => tohtml(tr('PHP Versions')),
+        'TR_DEFAULT_PHP' => tohtml(tr('Default PHP')),
+        'TR_SUPPORTED_PHP' => tohtml(tr('Supported PHP'))
     ));
 }
 
@@ -382,6 +385,12 @@ $tpl->define_dynamic(array(
     'mail_function_block' => 'disable_functions_block',
     'disable_exec_block' => 'page',
     'error_reporting_block' => 'page'
+));
+
+// Expose PHP multi-version info to the template
+$tpl->assign(array(
+    'PHP_DEFAULT_VERSION' => isset($config['PHP_DEFAULT_VERSION']) ? $config['PHP_DEFAULT_VERSION'] : '',
+    'PHP_SUPPORTED_VERSIONS' => isset($config['PHP_SUPPORTED_VERSIONS']) ? $config['PHP_SUPPORTED_VERSIONS'] : ''
 ));
 
 $tpl->assign(array(

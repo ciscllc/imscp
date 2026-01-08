@@ -1,0 +1,17 @@
+1.9.00.1 beta - 2025-12-31 - Release notes
+
+- Version: 1.9.00.1 beta
+Summary:
+- Preferred MariaDB in package manifests across docs/ (10.6 where applicable).
+- Added Debian 11 (`bullseye`) package manifest template.
+- Added Ubuntu package manifest templates: `mantic`, `jammy`, `focal`.
+- Replaced MySQL APT repo references in legacy manifests with MariaDB repositories where appropriate.
+- Minor README/CHANGELOG/AUTHORS updates (annotation: partly KI generated).
+
+Notes:
+- Code-level `mysql` identifiers (Perl modules, installer logic, SQL system table names) were left unchanged because MariaDB is compatible and these identifiers reflect runtime components and DB schema names.
+- BuildDate found in `configs/debian/imscp.conf`: 20251231 (used as release build date).
+
+Authors:
+- i-MSCP Team (original project)
+- CISC, LLC. (contributed updates; does not claim copyright of i-MSCP)

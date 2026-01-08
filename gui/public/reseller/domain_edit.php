@@ -113,6 +113,20 @@ function reseller_getDomainProps($domainId)
     );
     $data = $stmt->fetchRow();
 
+    // Try to fetch domain_php_version if column exists
+    try {
+        $stmtCol = exec_query("SHOW COLUMNS FROM domain LIKE 'domain_php_version'");
+        if ($stmtCol->rowCount()) {
+            $stmt2 = exec_query('SELECT domain_php_version FROM domain WHERE domain_id = ?', $domainId);
+            $row2 = $stmt2->fetchRow(PDO::FETCH_ASSOC);
+            $data['domain_php_version'] = isset($row2['domain_php_version']) ? $row2['domain_php_version'] : '';
+        } else {
+            $data['domain_php_version'] = '';
+        }
+    } catch (Exception $e) {
+        $data['domain_php_version'] = '';
+    }
+
     // domain traffic
     $fdofmnth = mktime(0, 0, 0, date('m'), 1, date('Y'));
     $ldofmnth = mktime(1, 0, 0, date('m') + 1, 0, date('Y'));
@@ -205,6 +219,7 @@ function &reseller_getData($domainId, $forUpdate = false)
     $data['fallback_domain_traffic_limit'] = $data['domain_traffic_limit'];
     $data['fallback_domain_disk_limit'] = $data['domain_disk_limit'];
     $data['fallback_domain_php'] = $data['domain_php'];
+    $data['fallback_domain_php_version'] = $data['domain_php_version'];
     $data['fallback_domain_cgi'] = $data['domain_cgi'];
     $data['fallback_domain_dns'] = $data['domain_dns'];
     $data['fallback_domain_software_allowed'] = $data['domain_software_allowed'];
@@ -243,6 +258,7 @@ function &reseller_getData($domainId, $forUpdate = false)
         $data['domain_expires'] = isset($_POST['domain_expires']) ? clean_input($_POST['domain_expires']) : $data['domain_expires'];
         $data['domain_never_expires'] = isset($_POST['domain_never_expires']) ? clean_input($_POST['domain_never_expires']) : 'off';
         $data['domain_php'] = isset($_POST['domain_php']) ? clean_input($_POST['domain_php']) : $data['domain_php'];
+        $data['domain_php_version'] = isset($_POST['domain_php_version']) ? clean_input($_POST['domain_php_version']) : $data['domain_php_version'];
         $data['domain_cgi'] = isset($_POST['domain_cgi']) ? clean_input($_POST['domain_cgi']) : $data['domain_cgi'];
         $data['domain_dns'] = isset($_POST['domain_dns']) ? clean_input($_POST['domain_dns']) : $data['domain_dns'];
 
@@ -894,7 +910,7 @@ function reseller_checkAndUpdateData($domainId)
                         domain_expires = ?, domain_last_modified = ?, domain_mailacc_limit = ?, domain_ftpacc_limit = ?,
                         domain_traffic_limit = ?, domain_sqld_limit = ?, domain_sqlu_limit = ?, domain_status = ?,
                         domain_alias_limit = ?, domain_subd_limit = ?, domain_ip_id = ?, domain_disk_limit = ?,
-                        domain_php = ?, domain_cgi = ?, allowbackup = ?, domain_dns = ?,  domain_software_allowed = ?,
+                        domain_php = ?, domain_php_version = ?, domain_cgi = ?, allowbackup = ?, domain_dns = ?,  domain_software_allowed = ?,
                         phpini_perm_system = ?, phpini_perm_allow_url_fopen = ?, phpini_perm_display_errors = ?,
                         phpini_perm_disable_functions = ?, phpini_perm_mail_function = ?, domain_external_mail = ?,
                         web_folder_protection = ?,
@@ -902,11 +918,11 @@ function reseller_checkAndUpdateData($domainId)
                     WHERE
                         domain_id = ?
                 ',
-                array(
+                    array(
                     $data['domain_expires'], time(), $data['domain_mailacc_limit'], $data['domain_ftpacc_limit'],
                     $data['domain_traffic_limit'], $data['domain_sqld_limit'], $data['domain_sqlu_limit'],
                     $needDaemonRequest ? 'tochange' : 'ok', $data['domain_alias_limit'], $data['domain_subd_limit'],
-                    $data['domain_ip_id'], $data['domain_disk_limit'], $data['domain_php'], $data['domain_cgi'],
+                    $data['domain_ip_id'], $data['domain_disk_limit'], $data['domain_php'], $data['domain_php_version'], $data['domain_cgi'],
                     implode('|', $data['allowbackup']), $data['domain_dns'], $data['domain_software_allowed'],
                     $phpini->getClientPermission('phpiniSystem'),
                     $phpini->getClientPermission('phpiniAllowUrlFopen'),

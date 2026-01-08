@@ -32,6 +32,13 @@
                 <input type="hidden" name="domain_type" value="{DOMAIN_TYPE}">
             </td>
         </tr>
+        <tr>
+            <td><label>{TR_PHP_VERSION_INFO}</label></td>
+            <td>
+                <p>{TR_DEFAULT_PHP}: {PHP_DEFAULT_VERSION}</p>
+                <p>{TR_SUPPORTED_PHP}: {PHP_SUPPORTED_VERSIONS}</p>
+            </td>
+        </tr>
         <!-- EDP: domain_list_block -->
         <!-- BDP: allow_url_fopen_block -->
         <tr>

@@ -1,6 +1,14 @@
 ﻿i-MSCP ChangeLog
 
 ------------------------------------------------------------------------------------------------------------------------
+1.9.00.1 beta - 2025-12-31
+------------------------------------------------------------------------------------------------------------------------
+
+1.9.00.1 beta (2025-12-31): CISC, LLC. (partly KI generated)
+	DOCS: Prefer MariaDB in package manifests; add Debian bullseye and Ubuntu mantic/jammy/focal templates.
+	DOCS: Replaced MySQL package tokens with MariaDB equivalents across docs/* manifests.
+	META: `AUTHORS` annotated to include CISC, LLC.; CISC, LLC. does not claim copyright of i-MSCP.
+
 1.2.17
 ------------------------------------------------------------------------------------------------------------------------
 

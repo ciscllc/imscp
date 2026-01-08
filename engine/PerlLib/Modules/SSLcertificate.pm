@@ -25,7 +25,6 @@ package Modules::SSLcertificate;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use iMSCP::File;
 use iMSCP::Dir;
@@ -71,7 +70,7 @@ sub process
 	return $rs if $rs;
 
 	my @sql;
-	if($self->{'status'} ~~ ['toadd', 'tochange']) {
+	if(grep($_ eq $self->{'status'}, ( 'toadd', 'tochange' ))) {
 		$rs = $self->add();
 		@sql = (
 			'UPDATE ssl_certs SET status = ? WHERE cert_id = ?',
@@ -92,7 +91,10 @@ sub process
 		return 1;
 	}
 
-	$rs;
+	# (since 1.2.16 - See #IP-1500)
+	# Return 0 to avoid any failure on update when a customer's SSL certificate is expired or invalid.
+	# It is the customer responsability to update the certificate throught his interface
+	0;
 }
 
 =item add()
@@ -128,7 +130,7 @@ sub add
 		'certificate_chain_name' => $self->{'domain_name'},
 		'private_key_container_path' => $privateKeyContainer,
 		'certificate_container_path' => $certificateContainer,
-		'ca_bundle_container_path' => (defined $caBundleContainer) ? $caBundleContainer : ''
+		'ca_bundle_container_path' => defined $caBundleContainer ? $caBundleContainer : ''
 	);
 
 	# Check certificate chain
@@ -229,7 +231,7 @@ sub _loadData
 
 	unless(exists $rdata->{$self->{'domain_id'}}) {
 		error(sprintf('SSL certificate with ID %s has not been found or is in an inconsistent state', $certificateId));
-    	return 1;
+		return 1;
 	}
 
 	$self->{'domain_name'} = $rdata->{$self->{'domain_id'}}->{'domain_name'};

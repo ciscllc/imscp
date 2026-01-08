@@ -25,7 +25,6 @@ package iMSCP::Getopt;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug qw/ debugRegisterCallBack /;
 use Text::Wrap;
 use fields qw /reconfigure noprompt preseed listener cleanPackageCache skipPackageUpdate debug verbose/;
@@ -177,8 +176,8 @@ sub showUsage
 
 our @reconfigurationItems = sort(
 	'all', 'servers', 'httpd', 'mta', 'mailfilters', 'po', 'ftpd', 'named', 'sql', 'hostnames', 'system_hostname',
-	'panel_hostname', 'panel_ports', 'ips', 'admin', 'php', 'timezone', 'panel_ssl', 'services_ssl', 'ssl', 'backup',
-	'webstats', 'sqlmanager', 'webmails', 'filemanager', 'antirootkits'
+	'panel_hostname', 'panel_ports', 'ips', 'admin', 'php', 'timezone', 'panel', 'panel_ssl', 'services_ssl', 'ssl',
+	'backup', 'webstats', 'sqlmanager', 'webmails', 'filemanager', 'antirootkits'
 );
 
 =item reconfigure([ $item = 'none' ])
@@ -211,7 +210,7 @@ EOF
 		$item = 'all';
 	}
 
-	$item eq 'none' || $item ~~ @reconfigurationItems or die(sprintf(
+	$item eq 'none' || grep($_ eq $item, @reconfigurationItems) or die(sprintf(
 		"Error: '%s' is not a valid argument for the --reconfigure option.", $item
 	));
 
@@ -258,21 +257,25 @@ sub listener
 
 =back
 
-=head1 OPTIONS
+=head1 AUTOLOAD
 
- Default accessor/mutator for command line options
-
- Return mixed Option value if defined or undef;
+ Handles all option fields, by creating accessor methods for them the
+ first time they are accessed.
 
 =cut
 
 sub AUTOLOAD
 {
-	(my $option = our $AUTOLOAD) =~ s/.*://;
-	my($class, $value) = @_;
+	(my $field = our $AUTOLOAD) =~ s/.*://;
 
-	$options->{$option} = $value if $value;
-	$options->{$option};
+	no strict 'refs';
+	*$AUTOLOAD = sub {
+		my $this = shift;
+
+		return $options->{$field} unless @_;
+		$options->{$field} = shift;
+	};
+	goto &$AUTOLOAD;
 }
 
 =back

@@ -25,7 +25,6 @@ package Package::PhpMyAdmin::Installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use Package::PhpMyAdmin;
 use iMSCP::EventManager;
@@ -87,9 +86,9 @@ sub showDialog
 	my $dbPass = main::setupGetQuestion('PHPMYADMIN_SQL_PASSWORD') || $self->{'config'}->{'DATABASE_PASSWORD'};
 	my ($rs, $msg) = (0, '');
 
-	if($main::reconfigure ~~ [ 'sqlmanager', 'all', 'forced' ] ||
-		length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x5b\x5d-\x7e]+$/ ||
-		length $dbPass < 6 || $dbPass !~ /^[\x21-\x5b\x5d-\x7e]+$/
+	if(grep($_ eq $main::reconfigure, ( 'sqlmanager', 'all', 'forced' ))
+		|| length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x5b\x5d-\x7e]+$/
+		|| length $dbPass < 6 || $dbPass !~ /^[\x21-\x5b\x5d-\x7e]+$/
 	) {
 		# Ensure no special chars are present in password. If we don't, dialog will not let user set new password
 		$dbPass = '';
@@ -110,13 +109,13 @@ sub showDialog
 				$msg = "\n\n\\Z1Only printable ASCII characters (excepted space) are allowed.\\Zn\n\nPlease try again:";
 				$dbUser = '';
 			}
-		} while ($rs != 30 && !$dbUser);
+		} while ($rs < 30 && !$dbUser);
 
-		if($rs != 30) {
+		if($rs < 30) {
 			$msg = '';
 
 			# Ask for the phpmyadmin restricted SQL user password unless we reuses existent SQL user
-			unless($dbUser ~~ [ keys %main::sqlUsers ]) {
+			unless(grep($_ eq $dbUser, ( keys %main::sqlUsers ))) {
 				do {
 					($rs, $dbPass) = $dialog->passwordbox(
 						"\nPlease, enter a password for the phpmyadmin SQL user (blank for autogenerate):$msg", $dbPass
@@ -135,12 +134,12 @@ sub showDialog
 					} else {
 						$msg = '';
 					}
-				} while($rs != 30 && $msg);
+				} while($rs < 30 && $msg);
 			} else {
 				$dbPass = $main::sqlUsers{$dbUser};
 			}
 
-			if($rs != 30) {
+			if($rs < 30) {
 				unless($dbPass) {
 					my @allowedChr = map { chr } (0x21..0x7e);
 					$dbPass = '';
@@ -152,7 +151,7 @@ sub showDialog
 		}
 	}
 
-	if($rs != 30) {
+	if($rs < 30) {
 		main::setupSetQuestion('PHPMYADMIN_SQL_USER', $dbUser);
 		main::setupSetQuestion('PHPMYADMIN_SQL_PASSWORD', $dbPass);
 		$main::sqlUsers{$dbUser} = $dbPass;
@@ -245,7 +244,7 @@ sub afterFrontEndBuildConfFile
 {
 	my ($tplContent, $tplName) = @_;
 
-	return 0 unless $tplName ~~ [ '00_master.conf', '00_master_ssl.conf' ];
+	return 0 unless grep($_ eq $tplName, ( '00_master.conf', '00_master_ssl.conf' ));
 
 	$$tplContent = replaceBloc(
 		"# SECTION custom BEGIN.\n",
@@ -397,6 +396,7 @@ sub _setupSqlUser
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $phpmyadminDbName = main::setupGetQuestion('DATABASE_NAME') . '_pma';
 	my $dbUser = main::setupGetQuestion('PHPMYADMIN_SQL_USER');
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
@@ -404,43 +404,25 @@ sub _setupSqlUser
 	my $dbOldUser = $self->{'config'}->{'DATABASE_USER'};
 
 	for my $sqlUser ($dbOldUser, $dbUser) {
-		next if !$sqlUser || "$sqlUser\@$dbUserHost" ~~ @main::createdSqlUsers;
+		next if !$sqlUser || grep($_ eq "$sqlUser\@$dbUserHost", @main::createdSqlUsers);
 
-		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}, $main::imscpOldConfig{'DATABASE_HOST'},
-			$main::imscpOldConfig{'BASE_SERVER_IP'}
-		) {
+		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 			next unless $host;
-
-			if(main::setupDeleteSqlUser($sqlUser, $host)) {
-				error(sprintf('Unable to remove %s@%s SQL user or one of its privileges', $sqlUser, $host));
-				return 1;
-			}
+			$sqlServer->dropUser($sqlUser, $host);
 		}
+	}
+
+	# Create SQL user if not already created by another server/package installer
+	unless(grep($_ eq "$dbUser\@$dbUserHost", @main::createdSqlUsers)) {
+		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
+		$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
+		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
 	my ($db, $errStr) = main::setupGetSqlConnect();
 	unless($db) {
 		error(sprintf('Could not connect to SQL server: %s', $errStr));
 		return 1;
-	}
-
-	# Create SQL user if not already created by another server/package installer
-	unless("$dbUser\@$dbUserHost" ~~ @main::createdSqlUsers) {
-		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
-
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		my $rs = $db->doQuery(
-			'c', 'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser, $dbUserHost, $dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create the %s@%s SQL user: %s', $dbUser, $dbUserHost, $rs));
-			return 1;
-		}
-
-		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
 	# Give needed privileges to this SQL user

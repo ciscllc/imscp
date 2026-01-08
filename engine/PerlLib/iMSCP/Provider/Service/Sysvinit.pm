@@ -25,7 +25,7 @@ package iMSCP::Provider::Service::Sysvinit;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
+use Carp;
 use File::Spec;
 use iMSCP::Debug 'error';
 use iMSCP::Execute;
@@ -77,7 +77,7 @@ sub getInstance
 
 sub isEnabled
 {
-	1; # Not implemented
+	confess 'not implemented';
 }
 
 =item enable($service)
@@ -85,13 +85,13 @@ sub isEnabled
  Enable the given service
 
  Param string $service Service name
- Return bool TRUE
+ Return bool TRUE if the given service is enabled, FALSE otherwise
 
 =cut
 
 sub enable
 {
-	1; # Not implemented
+	confess 'not implemented';
 }
 
 =item disable($service)
@@ -99,13 +99,13 @@ sub enable
  Disable the given service
 
  Param string $service Service name
- Return bool TRUE
+ Return bool TRUE on success, FALSE on failure
 
 =cut
 
 sub disable
 {
-	1; # Not implemented
+	confess 'not implemented';
 }
 
 =item remove($service)
@@ -113,13 +113,13 @@ sub disable
  Remove the given service
 
  Param string $service Service name
- Return bool TRUE
+ Return bool TRUE on success, FALSE on failure
 
 =cut
 
 sub remove
 {
-	1; # Not implemented
+	confess 'not implemented';
 }
 
 =item start($service)
@@ -253,7 +253,7 @@ sub _init
 	# http://search.cpan.org/~dozzie/Sys-Facter-1.01/
 	my $id = iMSCP::LsbRelease->getInstance()->getId('short');
 
-	if($id ~~ [ 'FreeBSD', 'DragonFly' ]) {
+	if(grep($_ eq $id, ( 'FreeBSD', 'DragonFly' ))) {
 		$paths{$self} = [ '/etc/rc.d', '/usr/local/etc/rc.d' ];
 	} elsif ($id eq 'HP-UX') {
 		$paths{$self} = [ '/sbin/init.d' ];
@@ -280,7 +280,7 @@ sub _isSysvinit
 	my ($self, $service) = @_;
 
 	local $@;
-	eval { $self->getInitScriptPath($service); };
+	eval { $self->_searchInitScript($service); };
 }
 
 =item searchInitScript($service)

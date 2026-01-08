@@ -15,9 +15,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: i-MSCP\n"
 "Report-Msgid-Bugs-To: i18n@i-mscp.net\n"
-"POT-Creation-Date: 2016-03-02 14:23+0100\n"
-"PO-Revision-Date: 2016-03-01 19:51+0000\n"
-"Last-Translator: Thom Heemstra <thom@heemstra.us>\n"
+"POT-Creation-Date: 2016-03-12 13:17+0100\n"
+"PO-Revision-Date: 2016-03-05 15:15+0000\n"
+"Last-Translator: i-MSCP <team@i-mscp.net>\n"
 "Language-Team: Russian (Russia) (http://www.transifex.com/i-mscp/i-MSCP/language/ru_RU/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -587,9 +587,6 @@ msgstr "Время истечения ссылки активации <small>(В
 
 msgid "Add"
 msgstr "Добавить"
-
-msgid "Add / Edit SSL certificate"
-msgstr "Добавить/Изменить SSL сертификат"
 
 msgid "Add FTP account"
 msgstr "Добавить учётную запись FTP"
@@ -2493,6 +2490,9 @@ msgstr "Учетная запись FTP с таким именем уже сущ
 msgid "Ftp accounts"
 msgstr "Учетные записи FTP"
 
+msgid "Ftp directories"
+msgstr "Ftp каталоги"
+
 msgid "GB"
 msgstr "Гб"
 
@@ -2825,6 +2825,9 @@ msgstr "Неверное имя"
 msgid "Invalid SQL user host: %s"
 msgstr "Неверный хост SQL: %s"
 
+msgid "Invalid SSL certificate"
+msgstr "Неверный сертификат SSL"
+
 msgid "Invalid SSL certificate."
 msgstr "Негодный SSL сертификат."
 
@@ -3062,6 +3065,9 @@ msgstr "Искаженный запрос SQL"
 
 msgid "Manage SQL"
 msgstr "Управление SQL"
+
+msgid "Manage SSL certificate"
+msgstr "Управление сертификат SSL"
 
 msgid "Manage htaccess users and groups"
 msgstr "Управление htaccess пользователями и группами"
@@ -4278,9 +4284,6 @@ msgstr "Пользователь SQL не должен содержать зап
 msgid "SQL users"
 msgstr "Пользователи SQL"
 
-msgid "SSL certificate"
-msgstr "SSL сертификат"
-
 msgid "SSL certificate successfully scheduled for addition."
 msgstr "SSL cертификат успешно отмечен для добавления."
 
@@ -4292,6 +4295,9 @@ msgstr "SSL cертификат успешно отмечен для обнов�
 
 msgid "SSL feature is not available. You can only view your certificate."
 msgstr "Функция SSL недоступна. Вы можете только просмотреть Ваш сертификат."
+
+msgid "SSL status"
+msgstr "статус SSL"
 
 msgid "Save"
 msgstr "Сохранить"
@@ -6089,5 +6095,5 @@ msgstr "{RESELLER} загрузил новый пакет ПО"
 msgid "{USERNAME} user statistics"
 msgstr "Статистика пользователя {USERNAME} "
 
-msgid "© 2010-2015 i-MSCP Team<br/>All Rights Reserved"
-msgstr "© 2010-2015 i-MSCP Team<br/>Все права защищены"
+msgid "© 2010-2016 i-MSCP Team<br>All Rights Reserved"
+msgstr "© 2010-2016 i-MSCP Team<br>Все права защищены"

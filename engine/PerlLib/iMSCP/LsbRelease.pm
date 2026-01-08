@@ -5,7 +5,7 @@
 =cut
 
 # i-MSCP - internet Multi Server Control Panel
-# Copyright (C) 2010-2015 by Laurent Declercq <l.declercq@nuxwin.com>
+# Copyright (C) 2010-2016 by Laurent Declercq <l.declercq@nuxwin.com>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -292,7 +292,7 @@ sub _releaseIndex
 	my ($self, $suite) = ($_[0], $_[1]->{'suite'} || undef);
 
 	if($suite) {
-		if(grep $_ eq $suite, @RELEASES_ORDER) {
+		if(grep($_ eq $suite, @RELEASES_ORDER)) {
 			int(@RELEASES_ORDER - (grep { $RELEASES_ORDER[$_] eq $suite } 0..$#RELEASES_ORDER)[0]);
 		} else {
 			$suite;
@@ -436,11 +436,11 @@ sub _guessDebianRelease
 
 	my ($kern) = uname();
 
-	if(grep $kern, ('Linux', 'Hurd', 'NetBSD')) {
+	if(grep($_ eq $kern, ('Linux', 'Hurd', 'NetBSD'))) {
 		$distInfo{'OS'} = "GNU/$kern";
 	} elsif($kern eq 'FreeBSD') {
 		$distInfo{'OS'} = "GNU/k$kern";
-	} elsif(grep $kern, ('GNU/Linux', 'GNU/kFreeBSD')) {
+	} elsif(grep($_ eq $kern, ('GNU/Linux', 'GNU/kFreeBSD'))) {
 		$distInfo{'OS'} = $kern;
 	} else {
 		$distInfo{'OS'} = 'GNU';

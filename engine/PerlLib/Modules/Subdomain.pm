@@ -25,7 +25,6 @@ package Modules::Subdomain;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use iMSCP::Database;
 use iMSCP::Execute;
@@ -74,7 +73,7 @@ sub process
 	return $rs if $rs;
 
 	my @sql;
-	if($self->{'subdomain_status'} ~~ [ 'toadd', 'tochange', 'toenable' ]) {
+	if(grep($_ eq $self->{'subdomain_status'}, ( 'toadd', 'tochange', 'toenable' ))) {
 		$rs = $self->add();
 		@sql = (
 			'UPDATE subdomain SET subdomain_status = ? WHERE subdomain_id = ?',
@@ -188,7 +187,7 @@ sub _getHttpdData
 	my $confLevel = ($main::imscpConfig{'HTTPD_SERVER'} eq 'apache_php_fpm')
 		? Servers::httpd->factory()->{'phpfpmConfig'}->{'PHP_FPM_POOLS_LEVEL'}
 		: Servers::httpd->factory()->{'config'}->{'INI_LEVEL'};
-	$confLevel = $confLevel ~~ [ 'per_user', 'per_domain' ] ? 'dmn' : 'sub';
+	$confLevel = grep($_ eq $confLevel, ( 'per_user', 'per_domain' )) ? 'dmn' : 'sub';
 
 	my $phpiniMatchId = $confLevel eq 'dmn' ? $self->{'domain_id'} : $self->{'subdomain_id'};
 	my $phpini = $db->doQuery(
@@ -238,7 +237,6 @@ sub _getHttpdData
 		POST_MAX_SIZE => $phpini->{$phpiniMatchId}->{'post_max_size'} // 8,
 		UPLOAD_MAX_FILESIZE => $phpini->{$phpiniMatchId}->{'upload_max_filesize'} // 2,
 		ALLOW_URL_FOPEN => $phpini->{$phpiniMatchId}->{'allow_url_fopen'} || 'off',
-		PHPINI_OPEN_BASEDIR => '',
 		PHP_FPM_LISTEN_PORT => ($phpini->{$phpiniMatchId}->{'id'} // 0) - 1
 	};
 	%{$self->{'httpd'}};
@@ -296,7 +294,7 @@ sub _getNamedData
 		USER_NAME => $userName . 'sub' . $self->{'subdomain_id'}
 	};
 
-	if($self->{'external_mail'} ~~ [ 'domain', 'filter' ]) {
+	if(grep($_ eq $self->{'external_mail'}, ( 'domain', 'filter' ))) {
 		$self->{'named'}->{'MAIL_ENABLED'} = 1;
 
 		# only no wildcard MX (NOT LIKE '*.%') must be add to existent subdomains

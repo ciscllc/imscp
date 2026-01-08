@@ -20,7 +20,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib "$FindBin::Bin/../PerlLib";
+use lib "$FindBin::Bin/../PerlLib", "$FindBin::Bin/../PerlVendor";
 use iMSCP::Debug;
 use iMSCP::Bootstrapper;
 use iMSCP::Execute;
@@ -39,7 +39,9 @@ OPTIONS:
  'verbose|v' => sub { setVerbose(@_); }
 );
 
-iMSCP::Bootstrapper->getInstance()->boot({ nolock => 'yes', norequirements => 'yes', config_readonly => 'yes' });
+my $bootstrapper = iMSCP::Bootstrapper->getInstance();
+exit unless $bootstrapper->lock('/tmp/imscp-disable-accounts.lock', 'nowait');
+$bootstrapper->getInstance()->boot({ nolock => 'yes', norequirements => 'yes', config_readonly => 'yes' });
 
 sub run
 {
@@ -110,4 +112,6 @@ sub run
 	$rs;
 }
 
+my $rs = run();
+$bootstrapper->unlock('/tmp/imscp-disable-accounts.lock')
 exit run();

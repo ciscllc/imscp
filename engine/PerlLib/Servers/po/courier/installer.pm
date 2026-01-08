@@ -25,7 +25,6 @@ package Servers::po::courier::installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use iMSCP::EventManager;
 use iMSCP::Config;
@@ -33,13 +32,13 @@ use iMSCP::Rights;
 use iMSCP::File;
 use iMSCP::Dir;
 use iMSCP::Execute;
+use iMSCP::Stepper;
 use iMSCP::TemplateParser;
 use iMSCP::ProgramFinder;
 use File::Basename;
 use Servers::po::courier;
 use Servers::mta::postfix;
 use Servers::sqld;
-use version;
 use parent 'Common::SingletonClass';
 
 %main::sqlUsers = () unless %main::sqlUsers;
@@ -94,10 +93,9 @@ sub authdaemonSqlUserDialog
 
 	my ($rs, $msg) = (0, '');
 
-	if(
-		$main::reconfigure ~~ [ 'po', 'servers', 'all', 'forced' ] ||
-		(length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x5b\x5d-\x7e]+$/) ||
-		(length $dbPass < 6 || $dbPass !~ /^[\x21-\x5b\x5d-\x7e]+$/)
+	if(grep($_ eq $main::reconfigure, ( 'po', 'servers', 'all', 'forced' ))
+		|| length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x5b\x5d-\x7e]+$/
+		|| length $dbPass < 6 || $dbPass !~ /^[\x21-\x5b\x5d-\x7e]+$/
 	) {
 		# Ensure no special chars are present in password. If we don't, dialog will not let user set new password
 		$dbPass = '';
@@ -121,13 +119,13 @@ sub authdaemonSqlUserDialog
 				$msg = "\n\n\\Z1Only printable ASCII characters (excepted space and backslash) are allowed.\\Zn\n\nPlease try again:";
 				$dbUser = '';
 			}
-		} while ($rs != 30 && ! $dbUser);
+		} while ($rs < 30 && !$dbUser);
 
-		if($rs != 30) {
+		if($rs < 30) {
 			$msg = '';
 
 			# Ask for the authdaemon SQL user password unless we reuses existent SQL user
-			unless($dbUser ~~ [ keys %main::sqlUsers ]) {
+			unless(grep($_ eq $dbUser, ( keys %main::sqlUsers ))) {
 				do {
 					# Ask for the authdaemon restricted SQL user password
 					($rs, $dbPass) = $dialog->passwordbox(
@@ -147,12 +145,12 @@ sub authdaemonSqlUserDialog
 					} else {
 						$msg = '';
 					}
-				} while($rs != 30 && $msg);
+				} while($rs < 30 && $msg);
 			} else {
 				$dbPass = $main::sqlUsers{$dbUser};
 			}
 
-			if($rs != 30) {
+			if($rs < 30) {
 				unless($dbPass) {
 					my @allowedChr = map { chr } (0x21..0x5b, 0x5d..0x7e);
 					$dbPass = '';
@@ -164,7 +162,7 @@ sub authdaemonSqlUserDialog
 		}
 	}
 
-	if($rs != 30) {
+	if($rs < 30) {
 		main::setupSetQuestion('AUTHDAEMON_SQL_USER', $dbUser);
 		main::setupSetQuestion('AUTHDAEMON_SQL_PASSWORD', $dbPass);
 		$main::sqlUsers{$dbUser} = $dbPass;
@@ -191,10 +189,9 @@ sub cyrusSaslSqlUserDialog
 
 	my ($rs, $msg) = (0, '');
 
-	if(
-		$main::reconfigure ~~ [ 'po', 'servers', 'all', 'forced' ] ||
-		(length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x5b\x5d-\x7e]+$/) ||
-		(length $dbPass < 6 || $dbPass !~ /^[\x21-\x5b\x5d-\x7e]+$/)
+	if(grep($_ eq $main::reconfigure, ( 'po', 'servers', 'all', 'forced' ))
+		|| length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x5b\x5d-\x7e]+$/
+		|| length $dbPass < 6 || $dbPass !~ /^[\x21-\x5b\x5d-\x7e]+$/
 	) {
 		# Ensure no special chars are present in password. If we don't, dialog will not let user set new password
 		$dbPass = '';
@@ -218,13 +215,13 @@ sub cyrusSaslSqlUserDialog
 				$msg = "\n\n\\Z1Only printable ASCII characters (excepted space and backslash) are allowed.\\Zn\n\nPlease try again:";
 				$dbUser = '';
 			}
-		} while ($rs != 30 && ! $dbUser);
+		} while ($rs < 30 && !$dbUser);
 
-		if($rs != 30) {
+		if($rs < 30) {
 			$msg = '';
 
 			# Ask for the SASL SQL user password unless we reuses existent SQL user
-			unless($dbUser ~~ [ keys %main::sqlUsers ]) {
+			unless(grep($_ eq $dbUser, ( keys %main::sqlUsers ))) {
 				do {
 					# Ask for the SASL restricted SQL user password
 					($rs, $dbPass) = $dialog->passwordbox(
@@ -244,12 +241,12 @@ sub cyrusSaslSqlUserDialog
 					} else {
 						$msg = '';
 					}
-				} while($rs != 30 && $msg);
+				} while($rs < 30 && $msg);
 			} else {
 				$dbPass = $main::sqlUsers{$dbUser};
 			}
 
-			if($rs != 30) {
+			if($rs < 30) {
 				unless($dbPass) {
 					my @allowedChr = map { chr } (0x21..0x5b, 0x5d..0x7e);
 					$dbPass = '';
@@ -261,7 +258,7 @@ sub cyrusSaslSqlUserDialog
 		}
 	}
 
-	if($rs != 30) {
+	if($rs < 30) {
 		main::setupSetQuestion('SASL_SQL_USER', $dbUser);
 		main::setupSetQuestion('SASL_SQL_PASSWORD', $dbPass);
 		$main::sqlUsers{$dbUser} = $dbPass;
@@ -491,6 +488,7 @@ sub _setupAuthdaemonSqlUser
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = main::setupGetQuestion('AUTHDAEMON_SQL_USER');
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
@@ -501,15 +499,11 @@ sub _setupAuthdaemonSqlUser
 	return $rs if $rs;
 
 	for my $sqlUser ($dbOldUser, $dbUser) {
-		next if !$sqlUser || "$sqlUser\@$dbUserHost" ~~ @main::createdSqlUsers;
+		next if !$sqlUser || grep($_ eq "$sqlUser\@$dbUserHost", @main::createdSqlUsers);
 
-		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_HOST'}, $main::imscpOldConfig{'BASE_SERVER_IP'}) {
+		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 			next unless $host;
-
-			if(main::setupDeleteSqlUser($sqlUser, $host)) {
-				error(sprintf('Could not remove %s@%s SQL user or one of its privileges', $sqlUser, $host));
-				return 1;
-			}
+			$sqlServer->dropUser($sqlUser, $host);
 		}
 	}
 
@@ -517,24 +511,9 @@ sub _setupAuthdaemonSqlUser
 	fatal("Could not connect to SQL server: $errStr") unless $db;
 
 	# Create SQL user if not already created by another server/package installer
-	unless("$dbUser\@$dbUserHost" ~~ @main::createdSqlUsers) {
+	unless(grep($_ eq "$dbUser\@$dbUserHost", @main::createdSqlUsers)) {
 		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
-
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		$rs = $db->doQuery(
-			'c',
-			'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser,
-			$dbUserHost,
-			$dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create %s@%s SQL user: %s', $dbUser, $dbUserHost, $rs));
-			return 1;
-		}
-
+		$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
 		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
@@ -563,6 +542,7 @@ sub _setupCyrusSaslSqlUser
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = main::setupGetQuestion('SASL_SQL_USER');
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
@@ -574,18 +554,11 @@ sub _setupCyrusSaslSqlUser
 	return $rs if $rs;
 
 	for my $sqlUser ($dbOldUser, $dbUser) {
-		next if !$sqlUser || "$sqlUser\@$dbUserHost" ~~ @main::createdSqlUsers;
+		next if !$sqlUser || grep($_ eq "$sqlUser\@$dbUserHost", @main::createdSqlUsers);
 
-		for my $host(
-			$dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}, $main::imscpOldConfig{'DATABASE_HOST'},
-			$main::imscpOldConfig{'BASE_SERVER_IP'}
-		) {
+		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 			next unless $host;
-
-			if(main::setupDeleteSqlUser($sqlUser, $host)) {
-				error(sprintf('Could not remove %s@%s SQL user or one of its privileges', $sqlUser, $host));
-				return 1;
-			}
+			$sqlServer->dropUser($sqlUser, $host);
 		}
 	}
 
@@ -593,24 +566,9 @@ sub _setupCyrusSaslSqlUser
 	fatal(sprintf('Could not connect to SQL server: %s', $errStr)) unless $db;
 
 	# Create SQL user if not already created by another server/package installer
-	unless("$dbUser\@$dbUserHost" ~~ @main::createdSqlUsers) {
+	unless(grep($_ eq "$dbUser\@$dbUserHost", @main::createdSqlUsers)) {
 		debug(sprintf('Creating %s@%s SQL user with password: %s', $dbUser, $dbUserHost, $dbPass));
-
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		$rs = $db->doQuery(
-			'c',
-			'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser,
-			$dbUserHost,
-			$dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create %s@%s SQL user: %s', $dbUser, $dbUserHost, $rs));
-			return 1;
-		}
-
+		$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
 		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
@@ -626,7 +584,6 @@ sub _setupCyrusSaslSqlUser
 	$self->{'config'}->{'SASL_DATABASE_PASSWORD'} = $dbPass;
 	$self->{'eventManager'}->trigger('afterPoSetupCyrusSaslSqlUser');
 }
-
 
 =item _overrideAuthdaemonInitScript()
 
@@ -836,8 +793,15 @@ sub _buildDHparametersFile
 			return $rs if $rs;
 		}
 
-		my $rs = execute('DH_BITS=2048 mkdhparams', \my $stdout, \my $stderr);
-		error($stderr) if $stderr && $rs;
+		startDetail();
+		my $rs = step(
+			sub {
+				my $rs = execute('DH_BITS=2048 mkdhparams', \my $stdout, \my $stderr);
+				error($stderr) if $stderr && $rs;
+				$rs;
+			}, 'Generating DH parameter file. Please be patient...', 1, 1
+		);
+		endDetail();
 		return $rs if $rs;
 	}
 

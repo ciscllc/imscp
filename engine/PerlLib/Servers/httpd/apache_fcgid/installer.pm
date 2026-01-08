@@ -25,7 +25,6 @@ package Servers::httpd::apache_fcgid::installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Config;
 use iMSCP::Debug;
 use iMSCP::Database;
@@ -85,8 +84,8 @@ sub showDialog
 	my $rs = 0;
 	my $confLevel = main::setupGetQuestion('INI_LEVEL') || $self->{'config'}->{'INI_LEVEL'};
 
-	if($main::reconfigure ~~ [ 'httpd', 'php', 'servers', 'all', 'forced' ]
-		|| not $confLevel ~~ [ 'per_site', 'per_domain', 'per_user' ]
+	if(grep($_ eq $main::reconfigure, ( 'httpd', 'php', 'servers', 'all', 'forced' ))
+		|| !grep($_ eq $confLevel, ( 'per_site', 'per_domain', 'per_user' ))
 	) {
 		$confLevel =~ s/_/ /;
 
@@ -102,11 +101,11 @@ Please, choose the PHP configuration level you want use. Available levels are:
 
 ",
 			[ 'per_site', 'per_domain', 'per_user' ],
-			$confLevel ~~ [ 'per user', 'per domain' ] ? $confLevel : 'per site'
+			grep($_ eq $confLevel, ( 'per user', 'per domain' )) ? $confLevel : 'per site'
 		);
 	}
 
-	($self->{'config'}->{'INI_LEVEL'} = $confLevel) =~ s/ /_/ unless $rs == 30;
+	($self->{'config'}->{'INI_LEVEL'} = $confLevel) =~ s/ /_/ if $rs < 30;
 	$rs;
 }
 
@@ -386,7 +385,7 @@ sub _buildFastCgiConfFiles
 		) {
 			$rs = execute("php5enmod $extension", \my $stdout, \my $stderr);
 			debug($stdout) if $stdout;
-			unless($rs ~~ [0, 2]) {
+			unless(grep($_ eq $rs, ( 0, 2 ))) {
 				error($stderr) if $stderr;
 				return $rs;
 			}
@@ -517,17 +516,18 @@ sub _setupVlogger
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbHost = main::setupGetQuestion('DATABASE_HOST');
 	$dbHost = $dbHost eq 'localhost' ? '127.0.0.1' : $dbHost;
 	my $dbPort = main::setupGetQuestion('DATABASE_PORT');
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = 'vlogger_user';
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
-	$dbUserHost = $dbUserHost eq '127.0.0.1' ? 'localhost' : $dbUserHost;
+	$dbUserHost = 'localhost' if $dbUserHost eq '127.0.0.1';
 
 	my @allowedChr = map { chr } (0x21..0x5b, 0x5d..0x7e);
 	my $dbPass = '';
-	$dbPass .= $allowedChr[rand @allowedChr] for 1..16;
+	$dbPass .= $allowedChr[ rand @allowedChr ] for 1..16;
 
 	my ($db, $errStr) = main::setupGetSqlConnect($dbName);
 	fatal(sprintf('Could not connect to SQL server: %s', $errStr)) unless $db;
@@ -540,45 +540,22 @@ sub _setupVlogger
 		return 1;
 	}
 
-	for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}, '127.0.0.1') {
+	for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 		next unless $host;
-
-		if(main::setupDeleteSqlUser($dbUser, $host)) {
-			error('Could not remove SQL user or one of its privileges');
-			return 1;
-		}
-	}
-
-	my @dbUserHosts = ($dbUserHost);
-
-	if($dbUserHost ~~ [ 'localhost', '127.0.0.1' ]) {
-		push @dbUserHosts, $dbUserHost eq '127.0.0.1' ? 'localhost' : '127.0.0.1';
+		$sqlServer->dropUser($dbUser, $host);
 	}
 
 	my $quotedDbName = $db->quoteIdentifier($dbName);
-
-	for my $host(@dbUserHosts) {
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		my $rs = $db->doQuery(
-			'c',
-			'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser, $host, $dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create the %s@%s SQL user: %s', $dbUser, $host, $rs));
-			return 1;
-		}
-
-		$rs = $db->doQuery('g', "GRANT SELECT, INSERT, UPDATE ON $quotedDbName.httpd_vlogger TO ?@?", $dbUser, $host);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not add SQL privileges: %s', $rs));
-			return 1;
-		}
+	$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
+	my $rs = $db->doQuery(
+		'g', "GRANT SELECT, INSERT, UPDATE ON $quotedDbName.httpd_vlogger TO ?@?", $dbUser, $dbUserHost
+	);
+	unless(ref $rs eq 'HASH') {
+		error(sprintf('Coould not add SQL privileges: %s', $rs));
+		return 1;
 	}
 
-	my $rs = $self->{'httpd'}->setData({
+	$rs = $self->{'httpd'}->setData({
 		DATABASE_NAME => $dbName,
 		DATABASE_HOST => $dbHost,
 		DATABASE_PORT => $dbPort,

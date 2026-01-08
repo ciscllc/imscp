@@ -21,7 +21,7 @@
 # Portions created by the ispCP Team are Copyright (C) 2006-2010 by
 # isp Control Panel. All Rights Reserved.
 #
-# Portions created by the i-MSCP Team are Copyright (C) 2010-2015 by
+# Portions created by the i-MSCP Team are Copyright (C) 2010-2016 by
 # internet Multi Server Control Panel. All Rights Reserved.
 
 # Backward compatibility file for script using old engine methods
@@ -302,9 +302,9 @@ sub getCmdExitValue()
 #
 sub sys_command
 {
-	push_el(\@main::el, 'sys_command()', 'Starting...');
-
 	my ($cmd) = @_;
+
+	push_el(\@main::el, "sys_command($cmd)", 'Starting...');
 
 	system($cmd);
 
@@ -328,13 +328,23 @@ sub sys_command_rs
 {
 	my ($cmd) = @_;
 
-	push_el(\@main::el, 'sys_command_rs()', 'Starting...');
+	push_el(\@main::el, "sys_command_rs($cmd)", 'Starting...');
 
 	system($cmd);
 
 	push_el(\@main::el, 'sys_command_rs()', 'Ending...');
 
 	getCmdExitValue();
+}
+
+sub sys_command_excape_arg($)
+{
+	my $string = shift;
+
+	return $string if $string eq '' || $string =~ /^[a-zA-Z0-9_\-]+\z/;
+	$string =~ s/'/'\\''/g;
+
+	"'$string'";
 }
 
 sub decrypt_db_password

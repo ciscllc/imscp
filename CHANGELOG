@@ -1,14 +1,115 @@
 ﻿i-MSCP ChangeLog
 
 ------------------------------------------------------------------------------------------------------------------------
-Git 1.2.x
+1.2.17
 ------------------------------------------------------------------------------------------------------------------------
+
+2016-03-12: Laurent Declercq
+	RELEASE i-MSCP 1.2.17
+
+BACKEND
+	Fixed: Can't locate Data/Validate/IP.pm (now lazy-loaded to prevent failure on update) (iMSCP::Net)
+	Fixed: peer address not recognized in the case of a pointopoint interface (regression fix)
+
+CONTRIB
+	Fixed: Create the provisioning script even with the imscp-setup script (10_named_slave_provisioning.pl)
+
+INSTALLER
+	Fixed: Argument "" isn't numeric in numeric eq (==) at engine/PerlLib/Package/FrontEnd/Installer.pm line 270
+	Fixed: Could not enable service when unit file is a symlink due to 'No such file or directory' error (systemd)
+	Fixed: Could not add intermediate SSL certificates; dialog is always skipped (regression fix)
+	Fixed: MariaDB SQL server not selectable on fresh install (regression fix)
+	Fixed: Missing mysql-common package in MariaDB package sections (Debian Jessie)
+	Fixed: Panel SSL certificate chain not removed when disabling SSL or changing hostname
+	Fixed: When changing panel hostname, DNS zone file is not removed
+
+SERVERS
+	Fixed: Cannot connect to VsFTPD when behind NAT (WAN <-> LAN)
+
+TOOLS
+	Fixed: imscp-net-traffic-logger must not fail if part of rules were already removed
+
+VENDOR
+	Added: Class::Autouse Perl module version 2.01 from CPAN
+
+------------------------------------------------------------------------------------------------------------------------
+1.2.16
+------------------------------------------------------------------------------------------------------------------------
+
+2016-03-10: Laurent Declercq
+	RELEASE i-MSCP 1.2.16
+
+CONFIG
+	Added: /dev/random and /dev/urandom to open_basedir (PHP)
+
+BACKEND
+	Added: iMSCP::Service::hasService() method
+	Backported: iMSCP::Provider::NetworkInterface from 1.3.x branch - Provider for adding/removing IP addresses
+	Backported: iMSCP::Net changes from 1.3.x branch
+	Changed: IP addresses are now persistent (they are added into /etc/network/interfaces file)
+	Fixed: Could not create SQL user when using MariaDB SQL remote server
+	Fixed: Ip addresses are not validated correctly in iMSCP::Net
+	Fixed: macvlan interfaces not properly mapped in iMSCP::Net
+	Fixed: Shell arguments must be escaped in imscp-pkt-mngr and imscp-sw-mngr
+
+FRONTEND
+	Added: SSL status field on domain management page (Client interface)
+	Fixed: Could not add/edit SQL user when using MariaDB server - wrong syntax 'PASSWORD EXPIRE NEVER' ...
+	Fixed: Exception raised due to missing `ZIP` configuration variable
+	Fixed: Wrong error handling in cert_view.php (openssl_x509_checkpurpose function also returns -1 which is not FALSE)
+
+INSTALLER
+	Added: 'panel' reconfiguration item
+	Fixed: Could not unset 'hold' state on packages in some contexts
+	Fixed: Dialog backup (back up) feature is broken
+	Fixed: dpkg: warning: --compare-versions used with obsolete relation operator '<'
+	Fixed: Ensure that sysvinit scripts are disabled when upstart job are provided and when init is Upstart
+	Fixed: init_is_upstart() function not available in lsb-base < 4.1+Debian3 (sysvinit scripts)
+	Fixed: Mitigate possible PHP timezone warning with CLI SAPI
+	Fixed: Update notices are not sorted correctly
+	Fixed: Use MySQL 5.6 from official Trusty repository in place of MySQL Team repository
+	Fixed: Wrong package name (mysql-client-5.5 instead of mysql-client-5.6) in Debian Stretch packages file
+	Pending: Courier support for Debian Stretch - packages not available at this moment
+	Pending: VsFTPd support for Debian Stretch - libpam-mysql package not available at this moment
+	Removed: ispCP migration script (Migration from ispCP is no longer supported)
 
 PACKAGES
 	Fixed: Global symbol "$rs" requires explicit package name at Package/Webstats/Awstats/Uninstaller.pm line 103
 
-INSTALLER
-	Mitigate possible PHP timezone warning with CLI SAPI
+PLUGINS
+	Updated: API version to 1.0.3
+
+SERVERS
+	Added: createUser() and dropUSer() methods (SQL server impl.)
+	Fixed: MySQL server socket is missing after reboot (only with Upstart init)
+	Fixed: Proftpd not running after reload (quick fix - not i-MSCP related)
+
+SERVICES
+	Added: imscp_traffic service (imscp traffic logger - iptables rules)
+	Fixed: Possible 'socket is already in use' error on imscp_panel service restart, leading to 502 Bad Gateway error
+	Removed: imscp_network service - IP addresses are now added into network interface file
+
+SETUP
+	Fixed: Could not reconfigure due to 'Could not find sysvinit script...' error
+
+TOOLS
+	Fixed: imscp-net-traffic-logger must not depend on the SQL service
+	Removed: imscp-net-interface-mngr script (no longer needed because IP addresses are now persistent)
+
+VENDOR
+	Added: Net::IP Perl module version 1.26 from CPAN (libnet-ip-perl package under wheezy/precise is too old)
+	Updated: Capture::Tiny Perl module to version 0.36
+	Updated: Net::Domain::TLD Perl module to version 1.74
+
+YOUTRACK
+	IP-1394 httpd-logs-mngr starts before mysql server on reboot
+	IP-1428 i-MSCP services such as imscp_network should not depend on the mysql service
+	IP-1488 Show SSL-status on domain page
+	IP-1499 Reseller can't create hosting plans if mail accounts are disabled
+	IP-1500 Update fails when a customer's SSL certificate is invalid or expired
+	IP-1501 i18n - "Ftp directories" string is not translatable
+	IP-1503 vsftpd - 500 OOPS: prctl PR_SET_SECCOMP failed
+	IP-1505 Installer - cannot go back from the panel http port screen
 
 ------------------------------------------------------------------------------------------------------------------------
 1.2.15
@@ -66,7 +167,7 @@ SERVERS
 	Backported: VsFTPd server implementation from 1.3.x branch
 
 YOUTRACK
- 	IP-1367 Support for the VsFTPd server
+	IP-1367 Support for the VsFTPd server
 	IP-1444 Ubuntu - Vsftpd package broken - libgcc_s.so.1 must be installed for pthread_cancel to work
 	IP-1495 Domain alias with shared moint point fails
 

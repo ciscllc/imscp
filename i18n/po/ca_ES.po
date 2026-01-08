@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: i-MSCP\n"
 "Report-Msgid-Bugs-To: i18n@i-mscp.net\n"
-"POT-Creation-Date: 2016-03-02 14:23+0100\n"
-"PO-Revision-Date: 2016-03-01 15:50+0000\n"
+"POT-Creation-Date: 2016-03-12 13:17+0100\n"
+"PO-Revision-Date: 2016-03-05 06:26+0000\n"
 "Last-Translator: Laurent Declercq <l.declercq@nuxwin.com>\n"
 "Language-Team: Catalan (Spain) (http://www.transifex.com/i-mscp/i-MSCP/language/ca_ES/)\n"
 "MIME-Version: 1.0\n"
@@ -586,9 +586,6 @@ msgstr "Temps d'expiració de l'enllaç d'activació <small>(In minutes)</small>
 
 msgid "Add"
 msgstr "Afegir"
-
-msgid "Add / Edit SSL certificate"
-msgstr ""
 
 msgid "Add FTP account"
 msgstr ""
@@ -2492,6 +2489,9 @@ msgstr ""
 msgid "Ftp accounts"
 msgstr "comptes FTP"
 
+msgid "Ftp directories"
+msgstr ""
+
 msgid "GB"
 msgstr "GB"
 
@@ -2824,6 +2824,9 @@ msgstr ""
 msgid "Invalid SQL user host: %s"
 msgstr ""
 
+msgid "Invalid SSL certificate"
+msgstr ""
+
 msgid "Invalid SSL certificate."
 msgstr ""
 
@@ -3061,6 +3064,9 @@ msgstr ""
 
 msgid "Manage SQL"
 msgstr "Administrar SQL"
+
+msgid "Manage SSL certificate"
+msgstr ""
 
 msgid "Manage htaccess users and groups"
 msgstr ""
@@ -4277,9 +4283,6 @@ msgstr ""
 msgid "SQL users"
 msgstr "Usuaris SQL"
 
-msgid "SSL certificate"
-msgstr ""
-
 msgid "SSL certificate successfully scheduled for addition."
 msgstr ""
 
@@ -4290,6 +4293,9 @@ msgid "SSL certificate successfully scheduled for update."
 msgstr ""
 
 msgid "SSL feature is not available. You can only view your certificate."
+msgstr ""
+
+msgid "SSL status"
 msgstr ""
 
 msgid "Save"
@@ -6088,5 +6094,5 @@ msgstr "{RESELLER} ha carregat un nou paquet de programari"
 msgid "{USERNAME} user statistics"
 msgstr ""
 
-msgid "© 2010-2015 i-MSCP Team<br/>All Rights Reserved"
+msgid "© 2010-2016 i-MSCP Team<br>All Rights Reserved"
 msgstr ""

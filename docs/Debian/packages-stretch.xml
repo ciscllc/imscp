@@ -26,18 +26,6 @@
         </apache_php_fpm>
     </httpd>
     <po default="dovecot">
-        <courier>
-            <package>courier-authlib-mysql</package>
-            <package>courier-imap</package>
-            <package>courier-imap-ssl</package>
-            <package>courier-pop</package>
-            <package>courier-pop-ssl</package>
-            <package>libgamin0</package>
-            <package>libsasl2-modules</package>
-            <package>libsasl2-modules-sql</package>
-            <package>maildrop</package>
-            <package_conflict>sasl2-bin</package_conflict>
-        </courier>
         <dovecot>
             <package>dovecot-core</package>
             <package>dovecot-imapd</package>
@@ -57,11 +45,6 @@
             <package>proftpd-mod-mysql</package>
             <package_conflict>vsftpd</package_conflict>
         </proftpd>
-        <vsftpd>
-            <package>devscripts</package>
-            <package>libpam-mysql</package>
-            <package>vsftpd</package>
-        </vsftpd>
     </ftpd>
     <named default="bind">
         <bind>
@@ -101,7 +84,7 @@
                 pinning_pin_priority="1001"
                 >
             <package>libmysqlclient18</package>
-            <package>mysql-client-5.5</package>
+            <package>mysql-client-5.6</package>
             <package>mysql-common</package>
         </remote_server>
     </sql>
@@ -126,6 +109,7 @@
         <package>libcrypt-cbc-perl</package>
         <package>libcrypt-eksblowfish-perl</package>
         <package>libcrypt-rijndael-perl</package>
+        <package>libdata-validate-ip-perl</package>
         <package>libdata-validate-domain-perl</package>
         <package>libdatetime-perl</package>
         <package>libdbd-mysql-perl</package>
@@ -136,7 +120,6 @@
         <package>libfile-homedir-perl</package>
         <package>libmailtools-perl</package>
         <package>libmime-tools-perl</package>
-        <package>libnet-ip-perl</package>
         <package>libnet-dns-perl</package>
         <package>libnet-libidn-perl</package>
         <package>libtimedate-perl</package>
@@ -156,6 +139,7 @@
         <package>gcc</package>
         <package>git</package>
         <package>gzip</package>
+        <package>ifupdown</package>
         <package>iptables</package>
         <package>iproute</package>
         <package>ispell</package>

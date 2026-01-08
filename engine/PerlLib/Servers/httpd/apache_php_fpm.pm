@@ -25,7 +25,6 @@ package Servers::httpd::apache_php_fpm;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Config;
 use iMSCP::Debug;
 use iMSCP::Database;
@@ -44,6 +43,7 @@ use File::Basename;
 use IO::Socket::INET;
 use Scalar::Defer;
 use version;
+use Class::Autouse qw/Servers::httpd::apache_php_fpm::installer Servers::httpd::apache_php_fpm::uninstaller/;
 use parent 'Common::SingletonClass';
 
 =head1 DESCRIPTION
@@ -67,7 +67,6 @@ sub registerSetupListeners
 {
 	my (undef, $eventManager) = @_;
 
-	require Servers::httpd::apache_php_fpm::installer;
 	Servers::httpd::apache_php_fpm::installer->getInstance()->registerSetupListeners($eventManager);
 }
 
@@ -101,7 +100,6 @@ sub install
 	my $self = shift;
 
 	my $rs = $self->{'eventManager'}->trigger('beforeHttpdInstall', 'apache_php_fpm');
-	require Servers::httpd::apache_php_fpm::installer;
 	$rs ||= Servers::httpd::apache_php_fpm::installer->getInstance()->install();
 	$rs ||= $self->{'eventManager'}->trigger('afterHttpdInstall', 'apache_php_fpm');
 }
@@ -151,7 +149,6 @@ sub uninstall
 	my $self = shift;
 
 	my $rs = $self->{'eventManager'}->trigger('beforeHttpdUninstall', 'apache_php_fpm');
-	require Servers::httpd::apache_php_fpm::uninstaller;
 	$rs ||= Servers::httpd::apache_php_fpm::uninstaller->getInstance()->uninstall();
 	$rs ||= $self->{'eventManager'}->trigger('afterHttpdUninstall', 'apache_php_fpm');
 	$rs ||= $self->restart();
@@ -170,7 +167,6 @@ sub setEnginePermissions
 	my $self = shift;
 
 	my $rs = $self->{'eventManager'}->trigger('beforeHttpdSetEnginePermissions');
-	require Servers::httpd::apache_php_fpm::installer;
 	$rs ||= Servers::httpd::apache_php_fpm::installer->getInstance()->setEnginePermissions();
 	$rs ||= $self->{'eventManager'}->trigger('afterHttpdSetEnginePermissions');
 }
@@ -275,7 +271,7 @@ sub disableDmn
 
 	$self->setData($data);
 
-	my $ipMngr = iMSCP::Net->getInstance();
+	my $net = iMSCP::Net->getInstance();
 	my $version = $self->{'config'}->{'HTTPD_VERSION'};
 
 	$self->setData({
@@ -283,7 +279,7 @@ sub disableDmn
 		AUTHZ_ALLOW_ALL => version->parse($version) >= version->parse('2.4.0')
 			? 'Require all granted' : 'Allow from all',
 		HTTPD_LOG_DIR => $self->{'config'}->{'HTTPD_LOG_DIR'},
-		DOMAIN_IP => $ipMngr->getAddrVersion($data->{'DOMAIN_IP'}) eq 'ipv4'
+		DOMAIN_IP => $net->getAddrVersion($data->{'DOMAIN_IP'}) eq 'ipv4'
 			? $data->{'DOMAIN_IP'} : "[$data->{'DOMAIN_IP'}]"
 	});
 
@@ -1711,7 +1707,7 @@ sub _addFiles
 			$rs = setRights("$webDir/$file", {
 				dirmode => '0750',
 				filemode => '0640',
-				recursive => $file ~~ [ '00_private', 'cgi-bin', 'htdocs' ] ? 0 : 1
+				recursive => grep($_ eq $file, ( '00_private', 'cgi-bin', 'htdocs' )) ? 0 : 1
 			});
 			return $rs if $rs;
 		}
@@ -1806,7 +1802,7 @@ sub _buildPHPConfig
 		return $rs if $rs;
 	} elsif(($data->{'PHP_SUPPORT'} ne 'yes'
 		|| $confLevel eq 'per_user' && $domainType ne 'dmn'
-		|| $confLevel eq 'per_domain' && not $domainType ~~ [ 'dmn', 'als' ]
+		|| $confLevel eq 'per_domain' && !grep($_ eq $domainType, ( 'dmn', 'als' ))
 		|| $confLevel eq 'per_site')
 		&& -f "$self->{'phpfpmConfig'}->{'PHP_FPM_POOLS_CONF_DIR'}/$data->{'DOMAIN_NAME'}.conf"
 	) {

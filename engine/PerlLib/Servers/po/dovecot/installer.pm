@@ -25,7 +25,6 @@ package Servers::po::dovecot::installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use iMSCP::EventManager;
 use iMSCP::Config;
@@ -98,10 +97,9 @@ sub showDialog
 
 	my ($rs, $msg) = (0, '');
 
-	if(
-		$main::reconfigure ~~ [ 'po', 'servers', 'all', 'forced' ] ||
-		(length $dbUser < 6 || length $dbUser > 16 || $dbUser =~ /[^\x21-\x7e]+/) ||
-		(length $dbPass < 6 || $dbPass =~ /[^\x21-\x7e]+/)
+	if(grep($_ eq $main::reconfigure, ( 'po', 'servers', 'all', 'forced' ))
+		|| length $dbUser < 6 || length $dbUser > 16 || $dbUser =~ /[^\x21-\x7e]+/
+		|| length $dbPass < 6 || $dbPass =~ /[^\x21-\x7e]+/
 	) {
 		# Ensure no special chars are present in password. If we don't, dialog will not let user set new password
 		$dbPass = '';
@@ -125,13 +123,13 @@ sub showDialog
 				$msg = "\n\n\\Z1Only printable ASCII characters (excluding space) are allowed.\\Zn\n\nPlease try again:";
 				$dbUser = '';
 			}
-		} while ($rs != 30 && ! $dbUser);
+		} while ($rs < 30 && !$dbUser);
 
-		if($rs != 30) {
+		if($rs < 30) {
 			$msg = '';
 
 			# Ask for the dovecot SQL user password unless we reuses existent SQL user
-			unless($dbUser ~~ [ keys %main::sqlUsers ]) {
+			unless(grep($_ eq $dbUser, ( keys %main::sqlUsers ))) {
 				do {
 					($rs, $dbPass) = $dialog->passwordbox(
 						"\nPlease, enter a password for the dovecot SQL user (blank for autogenerate):$msg", $dbPass
@@ -150,12 +148,12 @@ sub showDialog
 					} else {
 						$msg = '';
 					}
-				} while($rs != 30 && $msg);
+				} while($rs < 30 && $msg);
 			} else {
 				$dbPass = $main::sqlUsers{$dbUser};
 			}
 
-			if($rs != 30) {
+			if($rs < 30) {
 				unless($dbPass) {
 					my @allowedChr = map { chr } 0x21..0x7e;
 					$dbPass = '';
@@ -167,7 +165,7 @@ sub showDialog
 		}
 	}
 
-	if($rs != 30) {
+	if($rs < 30) {
 		main::setupSetQuestion('DOVECOT_SQL_USER', $dbUser);
 		main::setupSetQuestion('DOVECOT_SQL_PASSWORD', $dbPass);
 		$main::sqlUsers{$dbUser} = $dbPass;
@@ -258,7 +256,7 @@ EOF
 				MTA_MAILBOX_UID_NAME => $self->{'mta'}->{'config'}-> {'MTA_MAILBOX_UID_NAME'},
 				MTA_MAILBOX_GID_NAME => $self->{'mta'}->{'config'}-> {'MTA_MAILBOX_GID_NAME'},
 				DOVECOT_DELIVER_PATH => $self->{'config'}->{'DOVECOT_DELIVER_PATH'},
-				SFLAG => (version->parse($self->{'version'}) < version->parse('2.0.0') ? '-s' : '')
+				SFLAG => version->parse($self->{'version'}) < version->parse('2.0.0') ? '-s' : ''
 			},
 			$configSnippet
 		);
@@ -396,6 +394,7 @@ sub _setupSqlUser
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = main::setupGetQuestion('DOVECOT_SQL_USER');
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
@@ -406,15 +405,11 @@ sub _setupSqlUser
 	return $rs if $rs;
 
 	for my $sqlUser ($dbOldUser, $dbUser) {
-		next if !$sqlUser || "$sqlUser\@$dbUserHost" ~~ @main::createdSqlUsers;
+		next if !$sqlUser || grep($_ eq "$sqlUser\@$dbUserHost", @main::createdSqlUsers);
 
-		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_HOST'}, $main::imscpOldConfig{'BASE_SERVER_IP'}) {
+		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 			next unless $host;
-
-			if(main::setupDeleteSqlUser($sqlUser, $host)) {
-				error(sprintf('Could not remove %s@%s SQL user or one of its privileges', $sqlUser, $host));
-				return 1;
-			}
+			$sqlServer->dropUser($sqlUser, $host);
 		}
 	}
 
@@ -422,24 +417,9 @@ sub _setupSqlUser
 	fatal(sprintf('Could not connect to SQL server: %s', $errStr)) unless $db;
 
 	# Create SQL user if not already created by another server/package installer
-	unless("$dbUser\@$dbUserHost" ~~ @main::createdSqlUsers) {
+	unless(grep($_ eq "$dbUser\@$dbUserHost", @main::createdSqlUsers)) {
 		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
-
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		$rs = $db->doQuery(
-			'c',
-			'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser,
-			$dbUserHost,
-			$dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create %s@%s SQL user: %s', $dbUser, $dbUserHost, $rs));
-			return 1;
-		}
-
+		$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
 		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
@@ -481,8 +461,8 @@ sub _buildConf
 		DATABASE_PASSWORD => $dbPass,
 		CONF_DIR => $main::imscpConfig{'CONF_DIR'},
 		HOSTNAME => $main::imscpConfig{'SERVER_HOSTNAME'},
-		DOVECOT_SSL => ($main::imscpConfig{'SERVICES_SSL_ENABLED'} eq 'yes') ? 'yes' : 'no',
-		COMMENT_SSL => ($main::imscpConfig{'SERVICES_SSL_ENABLED'} eq 'yes') ? '' : '#',
+		DOVECOT_SSL => $main::imscpConfig{'SERVICES_SSL_ENABLED'} eq 'yes' ? 'yes' : 'no',
+		COMMENT_SSL => $main::imscpConfig{'SERVICES_SSL_ENABLED'} eq 'yes' ? '' : '#',
 		CERTIFICATE => 'imscp_services',
 		IMSCP_GROUP => $main::imscpConfig{'IMSCP_GROUP'},
 		MTA_VIRTUAL_MAIL_DIR => $self->{'mta'}->{'config'}->{'MTA_VIRTUAL_MAIL_DIR'},

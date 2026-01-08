@@ -25,7 +25,6 @@ package autoinstaller::Adapter::DebianAdapter;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use iMSCP::Dialog;
 use iMSCP::EventManager;
@@ -155,11 +154,13 @@ sub installPackages
 
 		if($main::forcereinstall) {
 			push @command, "apt-get -y -o DPkg::Options::='--force-confnew' -o DPkg::Options::='--force-confmiss' " .
-				"--reinstall --auto-remove --purge --no-install-recommends --force-yes install @{$packages}";
+				"-o Dpkg::Options::='--force-overwrite' --reinstall --auto-remove --purge --no-install-recommends " .
+				"--force-yes install @{$packages}";
 		} else {
 			# -o Dpkg::Options::='--force-overwrite'
 			push @command, "apt-get -y -o DPkg::Options::='--force-confnew' -o DPkg::Options::='--force-confmiss' " .
-				"--auto-remove --purge --no-install-recommends --force-yes install @{$packages}";
+				"-o Dpkg::Options::='--force-overwrite' --auto-remove --purge --no-install-recommends --force-yes " .
+				"install @{$packages}";
 		}
 
 		my $stdout;
@@ -194,11 +195,16 @@ sub uninstallPackages
 	# Filter packages which must to be removed
 	my @packagesToIgnore = (@{$self->{'packagesToInstall'}}, @{$self->{'packagesToInstallDelayed'}});
 	s/=.*$// for @packagesToIgnore; # Remove any package version info (since 1.2.12)
-	@{$packages} = grep { not $_ ~~ @packagesToIgnore } uniq(@{$packages});
+	@{$packages} = grep { my $__ = $_; !grep($_ eq $__ , @packagesToIgnore) } uniq(@{$packages});
 
 	if(@{$packages}) {
-		# Do not try to remove packages which are no longer available
-		my $rs = execute("LANG=C dpkg-query -W -f='\${Package}\n' @{$packages} 2>/dev/null", \my $stdout, \my $stderr);
+		# Do not try to remove packages which are no installed or not available
+		my $rs = execute(
+			"dpkg-query -W -f='\${Package} \${Version}\n' @{$packages} 2>/dev/null " .
+				"| grep '[[:blank:]][[:alnum:]]' | cut -d ' ' -f 1",
+			\my $stdout,
+			\my $stderr
+		);
 		error($stderr) if $stderr && $rs > 1;
 		return $rs if $rs > 1;
 
@@ -210,14 +216,10 @@ sub uninstallPackages
 
 	if(@{$packages}) {
 		# Ensure that packages are not frozen
-		# Note: We mitigate expected apt-mark segfault (139) with Ubuntu 12.04
-		# see https://bugs.launchpad.net/ubuntu/+source/apt/+bug/1258958
-		my $rs = execute("apt-mark unhold @{$packages}", \my $stdout, \my $stderr);
+		# # Ignore exit code due to https://bugs.launchpad.net/ubuntu/+source/apt/+bug/1258958 bug
+		execute("LANG=C apt-mark unhold @{$packages}", \my $stdout, \my $stderr);
 		debug($stdout) if $stdout;
-		unless($rs ~~ [ 0, 139 ]) {
-			error(sprintf("Could not unset 'hold' state on packages: %s", $stderr || 'Unknown error'));
-			return $rs;
-		}
+		debug($stderr) if $stderr;
 
 		my @command = ();
 
@@ -228,7 +230,7 @@ sub uninstallPackages
 
 		push @command, "apt-get -y --auto-remove --purge --no-install-recommends remove @{$packages}";
 
-		$rs = execute("@command", (iMSCP::Getopt->preseed || iMSCP::Getopt->noprompt) ? \$stdout : undef, \$stderr);
+		my $rs = execute("@command", (iMSCP::Getopt->preseed || iMSCP::Getopt->noprompt) ? \$stdout : undef, \$stderr);
 		debug($stdout) if $stdout;
 		error($stderr) if $stderr && $rs;
 		error('Could not uninstall packages') if $rs && ! $stderr;
@@ -252,13 +254,13 @@ sub postBuild
 
 	# Needed to fix #IP-1246
 	if(iMSCP::ProgramFinder::find('php5dismod')) {
-		for (
+		for my $module(
 			'apc', 'curl', 'gd', 'imap', 'intl', 'json', 'mcrypt', 'mysqlnd', 'mysqli', 'mysql', 'opcache', 'pdo',
 			'pdo_mysql'
 		) {
-			my $rs = execute("php5dismod $_", \my $stdout, \my $stderr);
+			my $rs = execute("php5dismod $module", \my $stdout, \my $stderr);
 			debug($stdout) if $stdout;
-			unless($rs ~~ [ 0, 2 ]) {
+			unless(grep($_ eq $rs, ( 0, 2 ))) {
 				error($stderr) if $stderr;
 				return $rs;
 			}
@@ -267,13 +269,13 @@ sub postBuild
 
 	# Enable needed PHP modules (only if they are available)
 	if(iMSCP::ProgramFinder::find('php5enmod')) {
-		for (
+		for my $module(
 			'apc', 'curl', 'gd', 'imap', 'intl', 'json', 'mcrypt', 'mysqlnd/10', 'mysqli', 'mysql', 'opcache', 'pdo/10',
 			'pdo_mysql'
 		) {
-			my $rs = execute("php5enmod $_", \my $stdout, \my $stderr);
+			my $rs = execute("php5enmod $module", \my $stdout, \my $stderr);
 			debug($stdout) if $stdout;
-			unless($rs ~~ [ 0, 2 ]) {
+			unless(grep($_ eq $rs, ( 0, 2 ))) {
 				error($stderr) if $stderr;
 				return $rs;
 			}
@@ -304,8 +306,8 @@ sub _init
 	$self->{'eventManager'} = iMSCP::EventManager->getInstance();
 	$self->{'repositorySections'} = [ 'main', 'non-free' ];
 	$self->{'preRequiredPackages'} = [
-		'debconf-utils', 'dialog', 'libbit-vector-perl', 'libclass-insideout-perl', 'liblist-moreutils-perl',
-		'libscalar-defer-perl', 'libxml-simple-perl', 'wget', 'rsync'
+		'debconf-utils', 'binutils', 'dialog', 'libbit-vector-perl', 'libclass-insideout-perl',
+		'liblist-moreutils-perl', 'libscalar-defer-perl', 'libsort-versions-perl', 'libxml-simple-perl', 'wget', 'rsync'
 	];
 	$self->{'aptRepositoriesToRemove'} = [];
 	$self->{'aptRepositoriesToAdd'} = [];
@@ -416,22 +418,24 @@ sub _buildPackageList
 		# Alternative list of package to install
 		my $dAlt = delete $pkgList->{$section}->{'default'};
 		my $sAlt = $main::questions{ uc($section) . '_SERVER' } || $main::imscpConfig{ uc($section) . '_SERVER' };
-		my $forceDialog = $sAlt ? 0 : 1;
+		my $forceDialog = $sAlt eq '' ? 1 : 0;
 		$sAlt = $dAlt if $forceDialog;
 
 		my @alts = keys %{$pkgList->{$section}};
-		if(not $sAlt ~~ @alts) { # Handle wrong or deprecated entry case
+		if(!grep($_ eq $sAlt, @alts)) { # Handle wrong or deprecated entry case
 			$sAlt = $dAlt;
 			$forceDialog = 1;
 		}
 
-		if($pkgList->{$section}->{$sAlt}->{'allow_switch'}) {
+		if(!$forceDialog && $pkgList->{$section}->{$sAlt}->{'allow_switch'}) {
 			# Filter unallowed alternatives
-			@alts = grep { $_ ~~ @alts } split(',', $pkgList->{$section}->{$sAlt}->{'allow_switch'}), $sAlt;
+			@alts = grep {
+				my $__ = $_; grep($_ eq $__, @alts)
+			} split(',', $pkgList->{$section}->{$sAlt}->{'allow_switch'}), $sAlt;
 		}
 
 		# Ask user for alternative list of packages to install if any
-		if(@alts > 1 && ($forceDialog || $main::reconfigure ~~ [ $section, 'servers', 'all' ])) {
+		if(@alts > 1 && ($forceDialog || grep($_ eq $main::reconfigure, ( $section, 'servers', 'all' )))) {
 			iMSCP::Dialog->getInstance()->set('no-cancel', '');
 			(my $ret, $sAlt) = iMSCP::Dialog->getInstance()->radiolist(<<EOF, [ sort @alts ], $sAlt);
 
@@ -539,7 +543,7 @@ sub _updateAptSourceList
 		while($fileContent =~ /^deb\s+(?<uri>(?:https?|ftp)[^\s]+)\s+(?<distrib>[^\s]+)\s+(?<components>.+)$/gm) {
 			my $rf = $&;
 			my %rc = %+;
-			next if "$rc{'uri'} $rc{'distrib'}" ~~ @seen;
+			next if grep($_ eq "$rc{'uri'} $rc{'distrib'}", @seen);
 
 			if($fileContent !~ /^deb\s+$rc{'uri'}\s+\b$rc{'distrib'}\b\s+.*\b$sec\b/m) {
 				my $rs = execute("wget --spider $rc{'uri'}/dists/$rc{'distrib'}/$sec/", \my $stdout, \my $stderr);
@@ -755,7 +759,7 @@ sub _prefillDebconfDatabase
 		($sqlServer, $sqlServerVersion) = $main::questions{'SQL_SERVER'} =~ /^(mysql|mariadb|percona)_(\d+\.\d+)$/;
 
 		if ($sqlServer eq 'mysql') {
-			if ('mysql-community-server' ~~ @{$self->{'packagesToInstall'}}) {
+			if (grep($_ eq 'mysql-community-server', @{$self->{'packagesToInstall'}})) {
 				$sqlServerQuestionOwner = 'mysql-community-server';
 				$sqlServerQuestionPrefix = 'mysql-community-server';
 			} else {
@@ -817,7 +821,7 @@ if($sqlServer eq 'mariadb') {
 $sqlServerQuestionOwner $sqlServerQuestionPrefix-5.1/postrm_remove_databases boolean false
 $sqlServerQuestionOwner $sqlServerQuestionPrefix-5.1/really_downgrade boolean true
 EOF
-} elsif('mysql-community-server' ~~ @{$self->{'packagesToInstall'}}) {
+} elsif(grep($_ eq 'mysql-community-server', @{$self->{'packagesToInstall'}})) {
 	$selectionsFileContent .= <<EOF;
 $sqlServerQuestionOwner $sqlServerQuestionOwner/remove-data-dir boolean false
 EOF

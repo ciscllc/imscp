@@ -25,7 +25,6 @@ package Servers::httpd::apache_php_fpm::installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Config;
 use iMSCP::Debug;
 use iMSCP::Database;
@@ -90,8 +89,8 @@ sub showPhpConfigLevelDialog
 	my $rs = 0;
 	my $confLevel = main::setupGetQuestion('PHP_FPM_POOLS_LEVEL') || $self->{'phpfpmConfig'}->{'PHP_FPM_POOLS_LEVEL'};
 
-	if($main::reconfigure ~~ [ 'httpd', 'php', 'servers', 'all', 'forced' ]
-		|| not $confLevel ~~ [ 'per_site', 'per_domain', 'per_user' ]
+	if(grep($_ eq $main::reconfigure, ( 'httpd', 'php', 'servers', 'all', 'forced' ))
+		|| !grep($_ eq $confLevel, ( 'per_site', 'per_domain', 'per_user' ))
 	) {
 		$confLevel =~ s/_/ /;
 
@@ -107,11 +106,11 @@ Please, choose the PHP configuration level you want use. Available levels are:
 
 ",
 			[ 'per_site', 'per_domain', 'per_user' ],
-			$confLevel ~~ [ 'per user', 'per domain' ] ? $confLevel : 'per site'
+			grep($_ eq $confLevel, ( 'per user', 'per domain' )) ? $confLevel : 'per site'
 		);
 	}
 
-	($self->{'phpfpmConfig'}->{'PHP_FPM_POOLS_LEVEL'} = $confLevel) =~ s/ /_/ unless $rs == 30;
+	($self->{'phpfpmConfig'}->{'PHP_FPM_POOLS_LEVEL'} = $confLevel) =~ s/ /_/ if $rs < 30;
 	$rs;
 }
 
@@ -131,7 +130,9 @@ sub showListenModeDialog
 	my $rs = 0;
 	my $listenMode = main::setupGetQuestion('PHP_FPM_LISTEN_MODE') || $self->{'phpfpmConfig'}->{'LISTEN_MODE'};
 
-	if($main::reconfigure ~~ [ 'httpd', 'php', 'servers', 'all', 'forced' ] || not $listenMode ~~ [ 'uds', 'tcp' ]) {
+	if(grep($_ eq $main::reconfigure, ( 'httpd', 'php', 'servers', 'all', 'forced' ))
+		|| !grep($_ eq $listenMode, ( 'uds', 'tcp' ))
+	) {
 		($rs, $listenMode) = $dialog->radiolist(
 "
 \\Z4\\Zb\\ZuPHP-FPM - FastCGI address type\\Zn
@@ -144,12 +145,11 @@ Please, choose the FastCGI address type that you want use. Available types are:
 Be aware that for high traffic sites, TCP/IP can require a tweaking of your kernel parameters (sysctl).
 
 ",
-			[ 'uds', 'tcp'],
-			$listenMode ~~ [ 'tcp', 'uds' ] ? $listenMode : 'uds'
+			[ 'uds', 'tcp'], grep($_ eq $listenMode, ( 'tcp', 'uds' )) ? $listenMode : 'uds'
 		);
 	}
 
-	$self->{'phpfpmConfig'}->{'LISTEN_MODE'} = $listenMode unless $rs == 30;
+	$self->{'phpfpmConfig'}->{'LISTEN_MODE'} = $listenMode if $rs < 30;
 	$rs;
 }
 
@@ -386,7 +386,7 @@ sub _buildFastCgiConfFiles
 			my($stdout, $stderr);
 			$rs = execute("php5enmod $extension", \$stdout, \$stderr);
 			debug($stdout) if $stdout;
-			unless($rs ~~ [0, 2]) {
+			unless(grep($_ eq $rs, ( 0, 2 ))) {
 				error($stderr) if $stderr;
 				return $rs;
 			}
@@ -586,17 +586,18 @@ sub _setupVlogger
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbHost = main::setupGetQuestion('DATABASE_HOST');
 	$dbHost = $dbHost eq 'localhost' ? '127.0.0.1' : $dbHost;
 	my $dbPort = main::setupGetQuestion('DATABASE_PORT');
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = 'vlogger_user';
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
-	$dbUserHost = $dbUserHost eq '127.0.0.1' ? 'localhost' : $dbUserHost;
+	$dbUserHost = 'localhost' if $dbUserHost eq '127.0.0.1';
 
 	my @allowedChr = map { chr } (0x21..0x5b, 0x5d..0x7e);
 	my $dbPass = '';
-	$dbPass .= $allowedChr[rand @allowedChr] for 1..16;
+	$dbPass .= $allowedChr[ rand @allowedChr ] for 1..16;
 
 	my ($db, $errStr) = main::setupGetSqlConnect($dbName);
 	fatal(sprintf('Could not connect to SQL server: %s', $errStr)) unless $db;
@@ -605,51 +606,26 @@ sub _setupVlogger
 		my $rs = main::setupImportSqlSchema($db, "$self->{'apacheCfgDir'}/vlogger.sql");
 		return $rs if $rs;
 	} else {
-		error(sprintf('File %s not found.', "$self->{'apacheCfgDir'}/vlogger.sql not found."));
+		error(sprintf('File %s not found.', "$self->{'apacheCfgDir'}/vlogger.sql"));
 		return 1;
 	}
 
-	for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}, '127.0.0.1') {
+	for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 		next unless $host;
-
-		if(main::setupDeleteSqlUser($dbUser, $host)) {
-			error('Could not remove SQL user or one of its privileges');
-			return 1;
-		}
-	}
-
-	my @dbUserHosts = ($dbUserHost);
-
-	if($dbUserHost ~~ [ 'localhost', '127.0.0.1' ]) {
-		push @dbUserHosts, $dbUserHost eq '127.0.0.1' ? 'localhost' : '127.0.0.1';
+		$sqlServer->dropUser($dbUser, $host);
 	}
 
 	my $quotedDbName = $db->quoteIdentifier($dbName);
-
-	for my $host(@dbUserHosts) {
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		my $rs = $db->doQuery(
-			'c',
-			'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser,
-			$host,
-			$dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create the %s@%s SQL user: %s', $dbUser, $host, $rs));
-			return 1;
-		}
-
-		$rs = $db->doQuery('g', "GRANT SELECT, INSERT, UPDATE ON $quotedDbName.httpd_vlogger TO ?@?", $dbUser, $host);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Coould not add SQL privileges: %s', $rs));
-			return 1;
-		}
+	$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
+	my $rs = $db->doQuery(
+		'g', "GRANT SELECT, INSERT, UPDATE ON $quotedDbName.httpd_vlogger TO ?@?", $dbUser, $dbUserHost
+	);
+	unless(ref $rs eq 'HASH') {
+		error(sprintf('Coould not add SQL privileges: %s', $rs));
+		return 1;
 	}
 
-	my $rs = $self->{'httpd'}->setData({
+	$rs = $self->{'httpd'}->setData({
 		DATABASE_NAME => $dbName,
 		DATABASE_HOST => $dbHost,
 		DATABASE_PORT => $dbPort,

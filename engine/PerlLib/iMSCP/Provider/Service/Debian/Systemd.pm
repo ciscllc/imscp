@@ -27,6 +27,7 @@ use strict;
 use warnings;
 use iMSCP::Execute;
 use iMSCP::File;
+use File::Basename;
 use Scalar::Defer;
 use parent qw(
 	iMSCP::Provider::Service::Systemd
@@ -91,9 +92,15 @@ sub enable
 {
 	my ($self, $service) = @_;
 
+	my $fservice = $service;
+	if($self->_isSystemd($service)) {
+		my $unitFilePath = $self->getUnitFilePath($service);
+		$fservice = basename(readlink($unitFilePath), '.service') if -l $unitFilePath;
+	}
+
 	if($SYSTEMCTL_COMPAT_MODE) {
-		if($self->_isSystemd($service)) {
-			return 0 unless $self->SUPER::enable($service);
+		if($self->_isSystemd($fservice)) {
+			return 0 unless $self->SUPER::enable($fservice);
 		}
 
 		# Backward compatibility operations
@@ -110,7 +117,7 @@ sub enable
 	}
 
 	# Note: Will automatically call update-rc.d in case of a sysvinit script
-	$self->SUPER::enable($service);
+	$self->SUPER::enable($fservice);
 }
 
 =item disable($service)
@@ -126,9 +133,15 @@ sub disable
 {
 	my ($self, $service) = @_;
 
+	my $fservice = $service;
+	if($self->_isSystemd($service)) {
+		my $unitFilePath = $self->getUnitFilePath($service);
+		$fservice = basename(readlink($unitFilePath), '.service') if -l $unitFilePath;
+	}
+
 	if($SYSTEMCTL_COMPAT_MODE) {
-		if($self->_isSystemd($service)) {
-			return 0 unless $self->SUPER::disable($service);
+		if($self->_isSystemd($fservice)) {
+			return 0 unless $self->SUPER::disable($fservice);
 		}
 
 		# Backward compatibility operations
@@ -145,7 +158,7 @@ sub disable
 	}
 
 	# Note: Will automatically call update-rc.d in case of a sysvinit script
-	$self->SUPER::disable($service);
+	$self->SUPER::disable($fservice);
 }
 
 =item remove($service)
@@ -172,6 +185,21 @@ sub remove
 	}
 
 	1;
+}
+
+=item hasService($service)
+
+ Does the given service exists?
+
+ Return bool TRUE if the given service exits, FALSE otherwise
+
+=cut
+
+sub hasService
+{
+	my ($self, $service) = @_;
+
+	$self->_isSystemd($service) || $self->_isSysvinit($service);
 }
 
 =back

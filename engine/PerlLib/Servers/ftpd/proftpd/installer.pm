@@ -25,7 +25,6 @@ package Servers::ftpd::proftpd::installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use iMSCP::Debug;
 use iMSCP::Config;
 use iMSCP::Execute;
@@ -87,10 +86,9 @@ sub sqlUserDialog
 
 	my ($rs, $msg) = (0, '');
 
-	if(
-		$main::reconfigure ~~ [ 'ftpd', 'servers', 'all', 'forced' ] ||
-		(length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x7e]+$/) ||
-		(length $dbPass < 6 || $dbPass !~ /^[\x21-\x7e]+$/)
+	if(grep($_ eq $main::reconfigure, ( 'ftpd', 'servers', 'all', 'forced' ))
+		|| length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x7e]+$/
+		|| length $dbPass < 6 || $dbPass !~ /^[\x21-\x7e]+$/
 	) {
 		# Ensure no special chars are present in password. If we don't, dialog will not let user set new password
 		$dbPass = '';
@@ -113,13 +111,13 @@ sub sqlUserDialog
 				$msg = "\n\n\\Z1Only printable ASCII characters (excepted space) are allowed.\\Zn\n\nPlease try again:";
 				$dbUser = '';
 			}
-		} while ($rs != 30 && ! $dbUser);
+		} while ($rs < 30 && !$dbUser);
 
-		if($rs != 30) {
+		if($rs < 30) {
 			$msg = '';
 
 			# Ask for the proftpd SQL user password unless we reuses existent SQL user
-			unless($dbUser ~~ [ keys %main::sqlUsers ]) {
+			unless(grep($_ eq $dbUser, (keys %main::sqlUsers))) {
 				do {
 					($rs, $dbPass) = $dialog->passwordbox(
 						"\nPlease, enter a password for the proftpd SQL user (blank for autogenerate):$msg", $dbPass
@@ -138,12 +136,12 @@ sub sqlUserDialog
 					} else {
 						$msg = '';
 					}
-				} while($rs != 30 && $msg);
+				} while($rs < 30 && $msg);
 			} else {
 				$dbPass = $main::sqlUsers{$dbUser};
 			}
 
-			if($rs != 30) {
+			if($rs < 30) {
 				unless($dbPass) {
 					my @allowedChr = map { chr } (0x21..0x7e);
 					$dbPass = '';
@@ -155,7 +153,7 @@ sub sqlUserDialog
 		}
 	}
 
-	if($rs != 30) {
+	if($rs < 30) {
 		main::setupSetQuestion('FTPD_SQL_USER', $dbUser);
 		main::setupSetQuestion('FTPD_SQL_PASSWORD', $dbPass);
 		$main::sqlUsers{$dbUser} = $dbPass;
@@ -180,7 +178,8 @@ sub passivePortRangeDialog
 	my ($rs, $msg) = (0, '');
 	my $passivePortRange = main::setupGetQuestion('FTPD_PASSIVE_PORT_RANGE') || $self->{'config'}->{'FTPD_PASSIVE_PORT_RANGE'};
 
-	if($main::reconfigure ~~ [ 'ftpd', 'servers', 'all', 'forced' ] || $passivePortRange !~ /^(\d+)\s+(\d+)$/
+	if(grep($_ eq $main::reconfigure, ( 'ftpd', 'servers', 'all', 'forced' ))
+		|| $passivePortRange !~ /^(\d+)\s+(\d+)$/
 		|| $1 < 32768 || $1 >= 60999 || $1 >= $2
 	) {
 		$passivePortRange = '32768 60999' unless $1 && $2;
@@ -205,10 +204,10 @@ EOF
 				$passivePortRange = "$1 $2";
 				$msg = '';
 			}
-		} while($rs != 30 && $msg);
+		} while($rs < 30 && $msg);
 	}
 
-	$self->{'config'}->{'FTPD_PASSIVE_PORT_RANGE'} = $passivePortRange unless $rs == 30;
+	$self->{'config'}->{'FTPD_PASSIVE_PORT_RANGE'} = $passivePortRange if $rs < 30;
 	$rs;
 }
 
@@ -348,6 +347,7 @@ sub _setupDatabase
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = main::setupGetQuestion('FTPD_SQL_USER');
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
@@ -358,18 +358,11 @@ sub _setupDatabase
 	return $rs if $rs;
 
 	for my $sqlUser ($dbOldUser, $dbUser) {
-		next if !$sqlUser || "$sqlUser\@$dbUserHost" ~~ @main::createdSqlUsers;
+		next if !$sqlUser || grep($_ eq "$sqlUser\@$dbUserHost", @main::createdSqlUsers);
 
-		for my $host(
-			$dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}, $main::imscpOldConfig{'DATABASE_HOST'},
-			$main::imscpOldConfig{'BASE_SERVER_IP'}
-		) {
+		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 			next unless $host;
-
-			if(main::setupDeleteSqlUser($sqlUser, $host)) {
-				error(sprintf('Unable to remove %s@%s SQL user or one of its privileges', $sqlUser, $host));
-				return 1;
-			}
+			$sqlServer->dropUser($sqlUser, $host);
 		}
 	}
 
@@ -377,22 +370,9 @@ sub _setupDatabase
 	fatal(sprintf('Unable to connect to SQL server: %s', $errStr)) unless $db;
 
 	# Create SQL user if not already created by another server/package installer
-	unless("$dbUser\@$dbUserHost" ~~ @main::createdSqlUsers) {
+	unless(grep($_ eq "$dbUser\@$dbUserHost", @main::createdSqlUsers)) {
 		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
-
-		my $hasExpireApi = version->parse(Servers::sqld->factory()->getVersion()) >= version->parse('5.7.6')
-			&& $main::imscpConfig{'SQL_SERVER'} !~ /mariadb/;
-
-		$rs = $db->doQuery(
-			'c',
-			'CREATE USER ?@? IDENTIFIED BY ?' . ($hasExpireApi ? ' PASSWORD EXPIRE NEVER' : ''),
-			$dbUser, $dbUserHost, $dbPass
-		);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Unable to create the %s@%s SQL user: %s', $dbUser, $dbUserHost, $rs));
-			return 1;
-		}
-
+		$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
 		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
@@ -476,7 +456,7 @@ sub _buildConfigFile
 	if($main::imscpConfig{'BASE_SERVER_IP'} ne $main::imscpConfig{'BASE_SERVER_PUBLIC_IP'}) {
 		$cfgTpl .= <<EOF;
 
-# ProFTPD behing NAT - Use public IP address
+# ProFTPD behind NAT - Use public IP address
 MasqueradeAddress $main::imscpConfig{'BASE_SERVER_PUBLIC_IP'}
 EOF
 	}

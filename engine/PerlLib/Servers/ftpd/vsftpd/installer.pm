@@ -25,7 +25,6 @@ package Servers::ftpd::vsftpd::installer;
 
 use strict;
 use warnings;
-no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 use Cwd;
 use iMSCP::Crypt 'randomStr';
 use iMSCP::Debug;
@@ -36,6 +35,7 @@ use iMSCP::Stepper;
 use iMSCP::TemplateParser;
 use File::Basename;
 use Servers::ftpd::vsftpd;
+use Servers::sqld;
 use version;
 use parent 'Common::SingletonClass';
 
@@ -86,9 +86,9 @@ sub sqlUserDialog
 
 	my ($rs, $msg) = (0, '');
 
-	if($main::reconfigure ~~ [ 'ftpd', 'servers', 'all', 'forced' ]
-		|| (length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x22\x24-\x5b\x5d-\x7e]+$/)
-		|| (length $dbPass < 6 || $dbPass !~ /^[\x21-\x22\x24-\x5b\x5d-\x7e]+$/)
+	if(grep($_ eq $main::reconfigure, ( 'ftpd', 'servers', 'all', 'forced' ))
+		|| length $dbUser < 6 || length $dbUser > 16 || $dbUser !~ /^[\x21-\x22\x24-\x5b\x5d-\x7e]+$/
+		|| length $dbPass < 6 || $dbPass !~ /^[\x21-\x22\x24-\x5b\x5d-\x7e]+$/
 	) {
 		do{
 			($rs, $dbUser) = $dialog->inputbox("\nPlease enter an username for the VsFTPd SQL user:$msg", $dbUser);
@@ -106,13 +106,13 @@ sub sqlUserDialog
 				$msg = "\n\n\\Z1Only printable ASCII characters (excepted space and number sign and backslash) are allowed.\\Zn\n\nPlease try again:";
 				$dbUser = '';
 			}
-		} while ($rs != 30 && !$dbUser);
+		} while ($rs < 30 && !$dbUser);
 
-		if($rs != 30) {
+		if($rs < 30) {
 			$msg = '';
 
 			# Ask for the VsFTPd SQL user password unless we reuses existent SQL user
-			unless($dbUser ~~ [ keys %main::sqlUsers ]) {
+			unless(grep($_ eq $dbUser, ( keys %main::sqlUsers ))) {
 				do {
 					($rs, $dbPass) = $dialog->passwordbox(
 						"\nPlease, enter a password for the VsFTPd SQL user (blank for autogenerate):$msg", $dbPass
@@ -131,19 +131,19 @@ sub sqlUserDialog
 					} else {
 						$msg = '';
 					}
-				} while($rs != 30 && $msg);
+				} while($rs < 30 && $msg);
 			} else {
 				$dbPass = $main::sqlUsers{$dbUser};
 			}
 
-			if($rs != 30) {
+			if($rs < 30) {
 				$dbPass = randomStr(16) unless $dbPass;
 				$dialog->msgbox("\nPassword for the VsFTPd SQL user set to: $dbPass");
 			}
 		}
 	}
 
-	if($rs != 30) {
+	if($rs < 30) {
 		main::setupSetQuestion('FTPD_SQL_USER', $dbUser);
 		main::setupSetQuestion('FTPD_SQL_PASSWORD', $dbPass);
 		$main::sqlUsers{$dbUser} = $dbPass;
@@ -168,7 +168,8 @@ sub passivePortRangeDialog
 	my ($rs, $msg) = (0, '');
 	my $passivePortRange = main::setupGetQuestion('FTPD_PASSIVE_PORT_RANGE') || $self->{'config'}->{'FTPD_PASSIVE_PORT_RANGE'};
 
-	if($main::reconfigure ~~ [ 'ftpd', 'servers', 'all', 'forced' ] || $passivePortRange !~ /^(\d+)\s+(\d+)$/
+	if(grep($_ eq $main::reconfigure, ( 'ftpd', 'servers', 'all', 'forced' ))
+		|| $passivePortRange !~ /^(\d+)\s+(\d+)$/
 		|| $1 < 32768 || $1 >= 60999 || $1 >= $2
 	) {
 		$passivePortRange = '32768 60999' unless $1 && $2;
@@ -193,10 +194,10 @@ EOF
 				$passivePortRange = "$1 $2";
 				$msg = '';
 			}
-		} while($rs != 30 && $msg);
+		} while($rs < 30 && $msg);
 	}
 
-	$self->{'config'}->{'FTPD_PASSIVE_PORT_RANGE'} = $passivePortRange unless $rs == 30;
+	$self->{'config'}->{'FTPD_PASSIVE_PORT_RANGE'} = $passivePortRange if $rs < 30;
 	$rs;
 }
 
@@ -298,16 +299,12 @@ sub _rebuildVsFTPdDebianPackage
 
 	$rs ||= step(
 		sub {
-			my $rs = execute('apt-mark unhold vsftpd', \my $stdout, \my $stderr);
-			# Note: We mitigate expected apt-mark segfault (139) with Ubuntu 12.04
-			# see https://bugs.launchpad.net/ubuntu/+source/apt/+bug/1258958
-			unless($rs ~~ [ 0, 139 ]) {
-				error(sprintf("Could not unset 'hold' state on the vsftpd package: %s", $stderr || 'Unknown error'));
-				return $rs if $rs;
-			}
+			# Ignore exit code due to https://bugs.launchpad.net/ubuntu/+source/apt/+bug/1258958 bug
+			execute('LANG=C apt-mark unhold vsftpd', \my $stdout, \my $stderr);
 			debug($stdout) if $stdout;
+			debug($stderr) if $stderr;
 
-			$rs = execute('apt-get -y source vsftpd', \$stdout, \$stderr);
+			my $rs = execute('apt-get -y source vsftpd', \$stdout, \$stderr);
 			error(sprintf( 'Could not get vsftpd source package: %s', $stderr || 'Unknown error')) if $rs;
 			return $rs if $rs;
 			debug($stdout) if $stdout;
@@ -342,7 +339,7 @@ sub _rebuildVsFTPdDebianPackage
 			error($stderr) if $rs && $stderr;
 			return $rs if $rs;
 
-			my $ret = execute("dpkg --compare-versions $stdout '<' 3", \$stdout, \$stderr);
+			my $ret = execute("dpkg --compare-versions $stdout lt 3", \$stdout, \$stderr);
 			if($stderr) {
 				error( sprintf( 'Could not compare vsftpd package version: %s', $stderr ) );
 				return 1;
@@ -397,11 +394,12 @@ sub _rebuildVsFTPdDebianPackage
 			my $rs = execute('dpkg --force-confnew -i vsftpd_*.deb', \my $stdout, \my $stderr);
 			error(sprintf('Could not install i-MSCP vsftpd package: %s', $stderr || 'Unknown error')) if $rs;
 			debug($stdout) if $stdout;
-
-			$rs = execute('apt-mark hold vsftpd', \$stdout, \$stderr);
-			error(sprintf("Could not set 'hold' state on the i-MSCP vsftpd package: %s", $stderr || 'Unknown error')) if $rs;
 			return $rs if $rs;
+
+			# Ignore exit code due to https://bugs.launchpad.net/ubuntu/+source/apt/+bug/1258958 bug
+			execute('LANG=C apt-mark hold vsftpd', \$stdout, \$stderr);
 			debug($stdout) if $stdout;
+			debug($stderr) if $stderr;
 			0;
 		}, 'Installing i-MSCP vsftpd package...', 7, 6
 	);
@@ -461,6 +459,7 @@ sub _setupDatabase
 {
 	my $self = shift;
 
+	my $sqlServer = Servers::sqld->factory();
 	my $dbName = main::setupGetQuestion('DATABASE_NAME');
 	my $dbUser = main::setupGetQuestion('FTPD_SQL_USER');
 	my $dbUserHost = main::setupGetQuestion('DATABASE_USER_HOST');
@@ -470,35 +469,25 @@ sub _setupDatabase
 	$self->{'eventManager'}->trigger('beforeFtpdSetupDb', $dbUser, $dbPass);
 
 	for my $sqlUser ($dbOldUser, $dbUser) {
-		next if !$sqlUser || "$sqlUser\@$dbUserHost" ~~ @main::createdSqlUsers;
+		next if !$sqlUser || grep($_ eq "$sqlUser\@$dbUserHost", @main::createdSqlUsers);
 
-		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}, $main::imscpOldConfig{'DATABASE_HOST'},
-			$main::imscpOldConfig{'BASE_SERVER_IP'}
-		) {
+		for my $host($dbUserHost, $main::imscpOldConfig{'DATABASE_USER_HOST'}) {
 			next unless $host;
-
-			if(main::setupDeleteSqlUser($sqlUser, $host)) {
-				error(sprintf('Could not remove %s@%s SQL user or one of its privileges', $sqlUser, $host));
-				return 1;
-			}
+			$sqlServer->dropUser($sqlUser, $host);
 		}
+	}
+
+	# Create SQL user if not already created by another server/package installer
+	unless(grep($_ eq "$dbUser\@$dbUserHost", @main::createdSqlUsers)) {
+		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
+		$sqlServer->createUser($dbUser, $dbUserHost, $dbPass);
+		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
 	my ($db, $errStr) = main::setupGetSqlConnect();
 	unless($db) {
 		error(sprintf('Could not connect to SQL server: %s', $errStr)),
 		return 1;
-	}
-
-	# Create SQL user if not already created by another server/package installer
-	unless("$dbUser\@$dbUserHost" ~~ @main::createdSqlUsers) {
-		debug(sprintf('Creating %s@%s SQL user', $dbUser, $dbUserHost));
-		my $rs = $db->doQuery('c', 'CREATE USER ?@? IDENTIFIED BY ?', $dbUser, $dbUserHost, $dbPass);
-		unless(ref $rs eq 'HASH') {
-			error(sprintf('Could not create the %s@%s SQL user: %s', $dbUser, $dbUserHost, $rs ));
-			return 1;
-		}
-		push @main::createdSqlUsers, "$dbUser\@$dbUserHost";
 	}
 
 	# Give needed privileges to this SQL user
@@ -566,11 +555,21 @@ sub _buildConfigFile
 	$rs = $self->{'eventManager'}->trigger('beforeFtpdBuildConf', \$cfgTpl, 'vsftpd.conf');
 	return $rs if $rs;
 
+	if($self->_isVsFTPdInsideCt()) {
+		$cfgTpl .= <<EOF;
+
+# VsFTPd run inside unprivileged VE
+# See http://youtrack.i-mscp.net/issue/IP-1503
+seccomp_sandbox=NO
+EOF
+	}
+
 	if($main::imscpConfig{'BASE_SERVER_IP'} ne $main::imscpConfig{'BASE_SERVER_PUBLIC_IP'}) {
 		$cfgTpl .= <<EOF;
 
-# VsFTPd behing NAT - Use public IP address
+# VsFTPd behind NAT - Use public IP address
 pasv_address=$main::imscpConfig{'BASE_SERVER_PUBLIC_IP'}
+pasv_promiscuous=YES
 EOF
 	}
 
@@ -677,6 +676,30 @@ sub _bkpConfFile
 	}
 
 	$self->{'eventManager'}->trigger('afterFtpdBkpConfFile', $cfgFile);
+}
+
+=item _isVsFTPdInsideCt()
+
+ Does the VsFTPd server is run inside an unprivileged VE (OpenVZ container)
+
+ Return bool TRUE if the VsFTPd server is run inside an OpenVZ container, FALSE otherwise
+
+=cut
+
+sub _isVsFTPdInsideCt
+{
+	if(-f '/proc/user_beancounters') {
+		my $rs = execute('cat /proc/1/status | grep --color=never envID', \my $stdout, \my $stderr);
+		debug($stdout) if $stdout;
+		warning($stderr) if $rs && $stderr;
+		return $rs if $rs;
+
+		if($stdout =~ /envID:\s+(\d+)/) {
+			return ($1 > 0) ? 1 : 0;
+		}
+	}
+
+	0;
 }
 
 =back

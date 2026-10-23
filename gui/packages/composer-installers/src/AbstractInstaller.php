@@ -25,8 +25,11 @@ abstract class AbstractInstaller
 
     public function getInstallPath(PackageInterface $package, $installerType = ''): string
     {
-        $type = $this->package->getType();
-        $prettyName = $this->package->getPrettyName();
+        // Use the package supplied by Composer rather than relying on the
+        // constructor copy; this also keeps the method correct for callers
+        // that reuse an installer instance.
+        $type = $package->getType();
+        $prettyName = $package->getPrettyName();
         if (strpos($prettyName, '/') !== false) {
             list($vendor, $name) = explode('/', $prettyName);
         } else {

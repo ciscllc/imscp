@@ -82,8 +82,8 @@
     "pear/net_dns2": "~1.4.4",
     "phpseclib/phpseclib": "~2.0.20",
     "slim/slim": "^3.12",
-    "zendframework/zend-escaper": "^2.6",
-    "zendframework/zendframework1": "1.12.20"
+    "zendframework/zendframework1": "1.12.20",
+    "laminas/laminas-escaper": "^2.11"
   },
   "autoload": {
     "psr-4": {

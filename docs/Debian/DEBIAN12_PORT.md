@@ -18,9 +18,10 @@ system and an upgrade test system.
 - The manifest now requires `cweagans/composer-patches ^1.7.3` and explicitly
   allows the required Composer plugins. The lock file has not yet been
   regenerated, so it still pins version 1.6.7.
-- The lock file pins `imscp/composer-installers 1.0.0`, which requires Composer
-  Plugin API 1.x and PHP 7.1. The installer plugin is i-MSCP-specific, so it
-  must be migrated or patched rather than blindly replaced.
+- The i-MSCP-specific installer plugin has been vendored as
+  `gui/packages/composer-installers` and adapted for Composer Plugin API 2.x.
+  The root manifest now resolves it through a local path repository. This fork
+  still needs Composer installation and package-path behavior tests.
 - The frontend uses Zend Framework 1.12.20 and `zendframework/zend-escaper`
   2.6.1. The latter only declares PHP 5.6/7 compatibility and is abandoned;
   replacing it with Laminas requires auditing namespace/API use. PHP 8.2
@@ -47,8 +48,9 @@ system and an upgrade test system.
 - [x] Created isolated branch `port/debian12-php82` from `1.9.00.x`.
 - [x] Reviewed Composer manifest/lock and Debian installation documentation.
 - [x] Updated Composer manifest for PHP 8.2 and Composer-patches 1.7.3.
-- [ ] Regenerated `gui/composer.lock` with Composer after resolving plugin and
-  Zend Escaper compatibility.
+- [x] Added a local Composer 2 / PHP 8.2-compatible i-MSCP installer package.
+- [ ] Regenerated `gui/composer.lock` with Composer after resolving Zend Escaper
+  compatibility.
 - [ ] Composer dependency migration completed.
 - [ ] PHP 8.2 static/runtime audit completed.
 - [ ] Debian 12 installer and service integration tested.

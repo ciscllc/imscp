@@ -13,22 +13,23 @@ autoinstaller/Packages/<DISTRO_ID>-<DISTRO_CODENAME>.xml
 ```
 
 For Debian 12 this resolves to `autoinstaller/Packages/debian-bookworm.xml`.
-That file does not exist in the current branch. The installer therefore has no
-Bookworm package catalog and cannot be considered Debian 12-ready even if the
-Composer/PHP changes are completed.
+A Bookworm-specific catalog has now been added on this port branch. This removes
+the missing-file blocker, but does not prove that every package resolves or that
+the resulting service configurations work. A clean Bookworm APT/install test is
+still required.
 
 ## Package catalog findings
 
 | Area | Existing Buster catalog | Debian 12 assessment |
 | --- | --- | --- |
-| PHP | Lists PHP 5.6, 7.0–7.4 and 8.0; adds Sury repository for `buster` | Replace with a Bookworm-specific catalog. Debian 12 ships PHP 8.2. Do not reuse the Buster repository stanza. |
+| PHP | Lists PHP 5.6, 7.0–7.4 and 8.0; adds Sury repository for `buster` | Bookworm catalog now selects PHP 8.2 from Debian packages and does not add the Buster/Sury repository. Resolve the full package set with APT. |
 | PHP extensions | Includes legacy package names such as `php8.0-json`; older branches list `mcrypt` | Build the PHP 8.2 list against Bookworm package metadata. JSON is part of the PHP 8.2 runtime packaging; mcrypt is not a standard PHP 8.2 extension package. |
-| MariaDB | Pins `mariadb-server-10.3`, `mariadb-client-10.3` and `libmariadb3` | Version-specific 10.3 package names are not appropriate for Bookworm. Debian 12's MariaDB series is 10.11; prefer Debian's supported metapackages unless code explicitly requires versioned names. |
+| MariaDB | Pins `mariadb-server-10.3`, `mariadb-client-10.3` and `libmariadb3` | Bookworm catalog uses `mariadb-server`, `mariadb-client`, and the `mariadb_10.11` alternative, matching Debian 12's MariaDB series. Test upgrades from the older 10.3 setup. |
 | Apache | Uses `apache2`, `apache2-dev`, `apache2-suexec-pristine`, `libapache2-mod-fcgid`, and `libapache2-mpm-itk` | Several core package names are present in Bookworm, but each alternative still needs dependency resolution and module/MPM tests. In particular, verify the ITK package and Apache module activation. |
 | Mail | Offers Courier or Dovecot for mailbox services; uses Postfix for MTA | The package names must be resolved against Bookworm. Then validate Postfix/Dovecot or Courier integration, SASL sockets, authentication, TLS and mailbox delivery. |
 | DNS | Uses `bind9` and `resolvconf` | Verify package availability, systemd unit names, resolver ownership and the generated BIND configuration on Bookworm. |
 | FTP | Offers `proftpd-basic` or `vsftpd`; ProFTPD uses MySQL module package | Resolve the selected FTP stack and SQL module packages on Bookworm; test PAM/authentication and passive ports. |
-| Base tools | Includes `ntp` and a range of legacy build/runtime utilities | Check the current Bookworm package names and whether each tool is still required. Do not remove dependencies until code references are audited. |
+| Base tools | Includes `ntp` and a range of legacy build/runtime utilities | Bookworm catalog uses `ntpsec` instead of legacy `ntp`. Other utility package names and their necessity still need APT and source-reference validation. |
 
 Debian's Bookworm package index confirms that the MariaDB server/client series
 is 10.11 and that PHP 8.2 modules are packaged for Bookworm. The Apache package
@@ -60,6 +61,6 @@ References: <https://packages.debian.org/bookworm/mariadb-server>,
 - [x] Identified the package-catalog path selected by the Debian adapter.
 - [x] Confirmed the Bookworm catalog is missing from the branch.
 - [x] Identified stale PHP/Sury and MariaDB 10.3 entries in the Buster catalog.
-- [ ] Add a Bookworm-specific package catalog.
+- [x] Add a Bookworm-specific package catalog with PHP 8.2 and MariaDB 10.11 package names.
 - [ ] Validate every selected package with Bookworm APT metadata for supported architectures.
 - [ ] Test service configuration and lifecycle on a clean Debian 12 VM.

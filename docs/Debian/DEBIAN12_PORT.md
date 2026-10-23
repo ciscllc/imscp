@@ -20,8 +20,9 @@ system and an upgrade test system.
   regenerated, so it still pins version 1.6.7.
 - The i-MSCP-specific installer plugin has been vendored as
   `gui/packages/composer-installers` and adapted for Composer Plugin API 2.x.
-  The root manifest now resolves it through a local path repository. This fork
-  still needs Composer installation and package-path behavior tests.
+  The root manifest now resolves it through a local path repository. The
+  install-path resolver was adjusted to use Composer's package argument, but
+  this fork still needs Composer installation and package-path behavior tests.
 - The direct Escaper requirement has been migrated from the abandoned
   `zendframework/zend-escaper` to `laminas/laminas-escaper ^2.11`. Laminas
   Escaper 2.11 introduced PHP 8.2 support; current 2.x releases require PHP
@@ -53,6 +54,8 @@ system and an upgrade test system.
 - [x] Reviewed Composer manifest/lock and Debian installation documentation.
 - [x] Updated Composer manifest for PHP 8.2 and Composer-patches 1.7.3.
 - [x] Added a local Composer 2 / PHP 8.2-compatible i-MSCP installer package.
+- [x] Added CI JSON parsing checks for the root manifest, lock file, and local plugin manifest.
+- [x] Removed an unnecessary reliance on the installer constructor's package copy when resolving install paths.
 - [x] Replaced the direct Zend Escaper requirement with Laminas Escaper.
 - [ ] Regenerated `gui/composer.lock` with Composer; the current lock still
   contains Zend Escaper 2.6.1 and is not yet consistent with the manifest.

@@ -299,7 +299,7 @@
         <package>lzma</package>
         <package>make</package>
         <package>mawk</package>
-        <package>ntpsec</package>
+        <package>ntp</package>
         <package>openssl</package>
         <package>patch</package>
         <package>pbuilder</package>

@@ -1,0 +1,26 @@
+{
+  "name": "imscp/composer-installers",
+  "type": "composer-plugin",
+  "version": "1.1.0",
+  "license": "LGPL-2.1-only",
+  "description": "i-MSCP Composer installers, maintained for Composer 2 and PHP 8.2",
+  "autoload": {
+    "psr-4": {
+      "iMSCP\\Composer\\": "src/"
+    }
+  },
+  "extra": {
+    "class": "iMSCP\\Composer\\Plugin",
+    "plugin-modifies-install-path": true
+  },
+  "replace": {
+    "roundcube/plugin-installer": "*"
+  },
+  "conflict": {
+    "composer/installers": "*"
+  },
+  "require": {
+    "php": "^8.2",
+    "composer-plugin-api": "^2.0"
+  }
+}

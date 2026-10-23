@@ -31,12 +31,24 @@ still required.
 | FTP | Offers `proftpd-basic` or `vsftpd`; ProFTPD uses MySQL module package | Resolve the selected FTP stack and SQL module packages on Bookworm; test PAM/authentication and passive ports. |
 | Base tools | Includes `ntp` and a range of legacy build/runtime utilities | Catalog retains `ntp`; in Bookworm this is a transitional package depending on `ntpsec`. Other utility package names and their necessity still need APT and source-reference validation. |
 
-Debian's Bookworm package index confirms that the MariaDB server/client series
-is 10.11 and that PHP 8.2 modules are packaged for Bookworm. The Apache package
-index lists `apache2`, `apache2-dev`, and `apache2-suexec-pristine`.
-References: <https://packages.debian.org/bookworm/mariadb-server>,
-<https://packages.debian.org/bookworm/php/>, and
-<https://packages.debian.org/bookworm/httpd/>.
+Spot checks against Debian's Bookworm package index confirm the PHP 8.2
+runtime and APCu packages, MariaDB 10.11 server/client packages, Apache core
+packages and ITK MPM, Courier IMAP, ProFTPD's MySQL module, vsftpd, the MySQL
+PAM module, `resolvconf`, and the `ntp` transitional package. These checks
+establish package-name availability only; they are not a full dependency
+resolution of the catalog and do not validate service configuration.
+
+References: <https://packages.debian.org/bookworm/php8.2>,
+<https://packages.debian.org/bookworm/php8.2-apcu>,
+<https://packages.debian.org/bookworm/mariadb-server>,
+<https://packages.debian.org/bookworm/httpd/>,
+<https://packages.debian.org/bookworm/libapache2-mpm-itk>,
+<https://packages.debian.org/bookworm/courier-imap>,
+<https://packages.debian.org/bookworm/proftpd-mod-mysql>,
+<https://packages.debian.org/bookworm/vsftpd>,
+<https://packages.debian.org/bookworm/libpam-mysql>,
+<https://packages.debian.org/bookworm/resolvconf>, and
+<https://packages.debian.org/bookworm/ntp/>.
 
 ## Configuration and service checks still required
 

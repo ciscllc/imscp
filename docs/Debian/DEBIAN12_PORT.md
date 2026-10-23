@@ -12,7 +12,7 @@ system and an upgrade test system.
 
 ## Confirmed blockers
 
-- The Debian adapter selects `autoinstaller/Packages/<DISTRO_ID>-<DISTRO_CODENAME>.xml`; the required `debian-bookworm.xml` package catalog is missing. A separate package/service audit is tracked in [`DEBIAN12_PACKAGES.md`](DEBIAN12_PACKAGES.md).
+- A Bookworm package catalog now exists at `autoinstaller/Packages/debian-bookworm.xml`, selecting PHP 8.2 and MariaDB 10.11 package names. Its package set has not yet been fully resolved by APT or tested on a clean Bookworm host. See [`DEBIAN12_PACKAGES.md`](DEBIAN12_PACKAGES.md).
 
 - `gui/composer.json` now targets PHP `^8.2`; the obsolete `ext-apc` platform
   requirement was removed because APC is not available as a PHP 8.2 extension.
@@ -63,6 +63,7 @@ system and an upgrade test system.
   contains Zend Escaper 2.6.1 and is not yet consistent with the manifest.
 - [ ] Composer dependency migration completed.
 - [ ] PHP 8.2 static/runtime audit completed.
-- [ ] Add Bookworm package catalog and validate Apache, Postfix, DNS, database, FTP and mail stack packages/services.
+- [x] Add initial Bookworm package catalog with PHP 8.2, MariaDB 10.11 and ntpsec package names.
+- [ ] Resolve all catalog packages using Bookworm APT metadata; validate Apache, Postfix, DNS, database, FTP and mail stack packages/services.
 - [ ] Debian 12 installer and service integration tested.
 - [ ] Fresh-install and upgrade tests passed.

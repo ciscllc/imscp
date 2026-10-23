@@ -22,10 +22,14 @@ system and an upgrade test system.
   `gui/packages/composer-installers` and adapted for Composer Plugin API 2.x.
   The root manifest now resolves it through a local path repository. This fork
   still needs Composer installation and package-path behavior tests.
-- The frontend uses Zend Framework 1.12.20 and `zendframework/zend-escaper`
-  2.6.1. The latter only declares PHP 5.6/7 compatibility and is abandoned;
-  replacing it with Laminas requires auditing namespace/API use. PHP 8.2
-  runtime compatibility and patch application have not yet been verified.
+- The direct Escaper requirement has been migrated from the abandoned
+  `zendframework/zend-escaper` to `laminas/laminas-escaper ^2.11`. Laminas
+  Escaper 2.11 introduced PHP 8.2 support; current 2.x releases require PHP
+  8.2+. The existing lock file still contains Zend Escaper 2.6.1, so Composer
+  must regenerate it before installs are consistent. Search/audit application
+  and plugin code for any direct `Zend\\Escaper` references before declaring
+  the migration complete. Zend Framework 1.12.20 and its local patches remain
+  a separate PHP 8.2 runtime risk.
 - The documented Debian support list ends at Debian 10 (Buster).
 
 ## Porting sequence
@@ -49,8 +53,9 @@ system and an upgrade test system.
 - [x] Reviewed Composer manifest/lock and Debian installation documentation.
 - [x] Updated Composer manifest for PHP 8.2 and Composer-patches 1.7.3.
 - [x] Added a local Composer 2 / PHP 8.2-compatible i-MSCP installer package.
-- [ ] Regenerated `gui/composer.lock` with Composer after resolving Zend Escaper
-  compatibility.
+- [x] Replaced the direct Zend Escaper requirement with Laminas Escaper.
+- [ ] Regenerated `gui/composer.lock` with Composer; the current lock still
+  contains Zend Escaper 2.6.1 and is not yet consistent with the manifest.
 - [ ] Composer dependency migration completed.
 - [ ] PHP 8.2 static/runtime audit completed.
 - [ ] Debian 12 installer and service integration tested.

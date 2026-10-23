@@ -50,6 +50,24 @@ system and an upgrade test system.
    mail, FTP, database, cron/daemon, backups, and updates.
 6. Only after those checks pass, add Debian 12 to the supported-version list.
 
+## LXC test script
+
+A helper script is available at
+[`contrib/testing/test-debian12-lxc.sh`](../../contrib/testing/test-debian12-lxc.sh).
+Run it inside a disposable Debian 12 LXC container to download this branch,
+extract it, and perform basic catalog/package metadata checks:
+
+```sh
+curl -fsSLo test-debian12-lxc.sh \
+  https://raw.githubusercontent.com/ciscllc/imscp/port/debian12-php82/contrib/testing/test-debian12-lxc.sh
+bash test-debian12-lxc.sh
+```
+
+To attempt the interactive installer after those checks, use
+`bash test-debian12-lxc.sh --run-installer`. The installer may reconfigure
+web, mail, DNS, database and FTP services; only do this in a disposable test
+container. The script log is saved under `/var/log/imscp-bookworm-test/`.
+
 ## Validation log
 
 - [x] Created isolated branch `port/debian12-php82` from `1.9.00.x`.

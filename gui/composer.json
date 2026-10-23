@@ -77,7 +77,7 @@
     "ext-zlib": "*",
     "algo26-matthias/idna-convert": "~2.1.0",
     "cweagans/composer-patches": "^1.7.3",
-    "imscp/composer-installers": "^1.0",
+    "imscp/composer-installers": "^1.1",
     "league/flysystem": "^1.0",
     "pear/net_dns2": "~1.4.4",
     "phpseclib/phpseclib": "~2.0.20",
@@ -125,5 +125,17 @@
         "Patch for Zend_Validate_File_Count validator (count() fix)": "patches/005_zend_validate_file_count.patch"
       }
     }
-  }
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "packages/composer-installers",
+      "options": {
+        "symlink": false,
+        "versions": {
+          "imscp/composer-installers": "1.1.0"
+        }
+      }
+    }
+  ]
 }

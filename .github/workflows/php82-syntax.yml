@@ -23,6 +23,15 @@ jobs:
           tools: none
           coverage: none
 
+      - name: Validate Composer JSON files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in gui/composer.json gui/composer.lock gui/packages/composer-installers/composer.json; do
+            php -r '$data = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); if (!is_array($data)) { throw new RuntimeException("Expected a JSON object"); }' "$file"
+            echo "Valid JSON: $file"
+          done
+
       - name: Lint application PHP files
         shell: bash
         run: |

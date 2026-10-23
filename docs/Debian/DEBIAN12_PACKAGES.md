@@ -4,7 +4,7 @@ This is a source-level audit of the installer package catalog and Debian service
 configuration. It is not a successful APT resolution or installation test.
 Package availability can vary by architecture and repository configuration.
 
-## Confirmed installer blocker
+## Catalog status
 
 The Debian adapter constructs the package-catalog path as:
 
@@ -71,7 +71,7 @@ References: <https://packages.debian.org/bookworm/php8.2>,
 ## Current status
 
 - [x] Identified the package-catalog path selected by the Debian adapter.
-- [x] Confirmed the Bookworm catalog is missing from the branch.
+- [x] Added a Bookworm-specific package catalog to the branch.
 - [x] Identified stale PHP/Sury and MariaDB 10.3 entries in the Buster catalog.
 - [x] Add a Bookworm-specific package catalog with PHP 8.2 and MariaDB 10.11 package names.
 - [ ] Validate every selected package with Bookworm APT metadata for supported architectures.

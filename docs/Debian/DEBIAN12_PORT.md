@@ -12,15 +12,18 @@ system and an upgrade test system.
 
 ## Confirmed blockers
 
-- `gui/composer.json` restricts PHP to `>=7.3 <7.4`.
-- The Composer requirements include `ext-apc`; APC is not a viable PHP 8.2
-  extension requirement. Audit the code to determine whether APCu alone is
-  sufficient before removing this requirement.
-- The lock file pins `cweagans/composer-patches 1.6.7`, which predates Composer
-  2 support, and `imscp/composer-installers 1.0.0`, which requires Composer
+- `gui/composer.json` now targets PHP `^8.2`; the obsolete `ext-apc` platform
+  requirement was removed because APC is not available as a PHP 8.2 extension.
+  Audit application code for legacy `apc_*` calls and verify APCu behavior.
+- The manifest now requires `cweagans/composer-patches ^1.7.3` and explicitly
+  allows the required Composer plugins. The lock file has not yet been
+  regenerated, so it still pins version 1.6.7.
+- The lock file pins `imscp/composer-installers 1.0.0`, which requires Composer
   Plugin API 1.x and PHP 7.1. The installer plugin is i-MSCP-specific, so it
   must be migrated or patched rather than blindly replaced.
-- The frontend uses Zend Framework 1.12.20 and existing local patches. PHP 8.2
+- The frontend uses Zend Framework 1.12.20 and `zendframework/zend-escaper`
+  2.6.1. The latter only declares PHP 5.6/7 compatibility and is abandoned;
+  replacing it with Laminas requires auditing namespace/API use. PHP 8.2
   runtime compatibility and patch application have not yet been verified.
 - The documented Debian support list ends at Debian 10 (Buster).
 
@@ -43,6 +46,9 @@ system and an upgrade test system.
 
 - [x] Created isolated branch `port/debian12-php82` from `1.9.00.x`.
 - [x] Reviewed Composer manifest/lock and Debian installation documentation.
+- [x] Updated Composer manifest for PHP 8.2 and Composer-patches 1.7.3.
+- [ ] Regenerated `gui/composer.lock` with Composer after resolving plugin and
+  Zend Escaper compatibility.
 - [ ] Composer dependency migration completed.
 - [ ] PHP 8.2 static/runtime audit completed.
 - [ ] Debian 12 installer and service integration tested.

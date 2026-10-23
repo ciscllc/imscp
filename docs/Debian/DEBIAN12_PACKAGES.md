@@ -29,7 +29,7 @@ still required.
 | Mail | Offers Courier or Dovecot for mailbox services; uses Postfix for MTA | The package names must be resolved against Bookworm. Then validate Postfix/Dovecot or Courier integration, SASL sockets, authentication, TLS and mailbox delivery. |
 | DNS | Uses `bind9` and `resolvconf` | Verify package availability, systemd unit names, resolver ownership and the generated BIND configuration on Bookworm. |
 | FTP | Offers `proftpd-basic` or `vsftpd`; ProFTPD uses MySQL module package | Resolve the selected FTP stack and SQL module packages on Bookworm; test PAM/authentication and passive ports. |
-| Base tools | Includes `ntp` and a range of legacy build/runtime utilities | Bookworm catalog uses `ntpsec` instead of legacy `ntp`. Other utility package names and their necessity still need APT and source-reference validation. |
+| Base tools | Includes `ntp` and a range of legacy build/runtime utilities | Catalog retains `ntp`; in Bookworm this is a transitional package depending on `ntpsec`. Other utility package names and their necessity still need APT and source-reference validation. |
 
 Debian's Bookworm package index confirms that the MariaDB server/client series
 is 10.11 and that PHP 8.2 modules are packaged for Bookworm. The Apache package
